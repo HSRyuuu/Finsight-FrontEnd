@@ -19,10 +19,12 @@ interface CandlestickChartProps {
   showMA5?: boolean;
   showMA20?: boolean;
   showMA60?: boolean;
+  showMA200?: boolean;
   showBollingerBands?: boolean;
   ma5Period?: number;
   ma20Period?: number;
   ma60Period?: number;
+  ma200Period?: number;
   bbPeriod?: number;
   bbStdDev?: number;
 }
@@ -33,10 +35,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   showMA5 = true,
   showMA20 = true,
   showMA60 = true,
+  showMA200 = true,
   showBollingerBands = true,
   ma5Period = 5,
   ma20Period = 20,
   ma60Period = 60,
+  ma200Period = 200,
   bbPeriod = 20,
   bbStdDev = 2,
 }) => {
@@ -174,12 +178,28 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
       if (ma60Data.length > 0) {
         const ma60Series = chart.addSeries(LineSeries, {
-          color: '#34C759', // 보라색 - 60일 이평선
+          color: '#34C759', // 초록색 - 60일 이평선
           lineWidth: 1,
           lastValueVisible: false, // 오른쪽 가격 라벨 숨김
           priceLineVisible: false, // 가격선 숨김
         });
         ma60Series.setData(ma60Data as any);
+      }
+    }
+
+    // 200일 이동평균선 추가
+    if (showMA200 && data.length >= ma200Period) {
+      const ma200Data = calculateMovingAverage(data, ma200Period);
+      console.log('MA200 데이터:', ma200Data.slice(0, 3)); // 디버깅용
+
+      if (ma200Data.length > 0) {
+        const ma200Series = chart.addSeries(LineSeries, {
+          color: '#003366', // 네이비 - 200일 이평선
+          lineWidth: 2,
+          lastValueVisible: false, // 오른쪽 가격 라벨 숨김
+          priceLineVisible: false, // 가격선 숨김
+        });
+        ma200Series.setData(ma200Data as any);
       }
     }
 
@@ -224,13 +244,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       />
       {/* 차트 범례 */}
       <View style={styles.legendContainer}>
-        {showMA5 && (
-          <View style={styles.legendItem}>
-            <View style={[styles.legendLine, { backgroundColor: '#5856D6' }]} />
-            {/* 5일 이동평균선 */}
-            <Text style={styles.legendText}>5</Text>
-          </View>
-        )}
         {showBollingerBands && (
           <>
             <View style={styles.legendItem}>
@@ -248,11 +261,25 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
             </View>
           </>
         )}
+        {showMA5 && (
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: '#5856D6' }]} />
+            {/* 5일 이동평균선 */}
+            <Text style={styles.legendText}>5</Text>
+          </View>
+        )}
         {showMA60 && (
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: '#34C759' }]} />
             {/* 60일 이동평균선 */}
             <Text style={styles.legendText}>60</Text>
+          </View>
+        )}
+        {showMA200 && (
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: '#003366' }]} />
+            {/* 200일 이동평균선 */}
+            <Text style={styles.legendText}>200</Text>
           </View>
         )}
       </View>
