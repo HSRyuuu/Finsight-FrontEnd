@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "플러스톡",
+    "slug": "plusstock",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.plusstock.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.plusstock.app",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./src/assets/favicon.png",
+      "bundler": "metro",
+      "name": "플러스톡",
+      "shortName": "PlusStock",
+      "description": "Plus Stock - 주식/ETF 실시간 차트 및 즐겨찾기 트래커",
+      "themeColor": "#FF3B30",
+      "backgroundColor": "#F2F2F7",
+      "startUrl": "/",
+      "display": "standalone",
+      "orientation": "portrait"
+    }
+  }
+}
