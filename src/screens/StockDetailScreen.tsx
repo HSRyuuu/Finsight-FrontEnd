@@ -78,8 +78,8 @@ const StockDetailScreen: React.FC = () => {
 
   const chartPeriods: { label: string; value: ChartPeriod }[] = [
     { label: '1일', value: 'DAY1' },
-    { label: '1주', value: 'WEEK1' },
-    { label: '1개월', value: 'MONTH1' },
+    // { label: '1주', value: 'WEEK1' },
+    // { label: '1개월', value: 'MONTH1' },
     // { label: '1분', value: 'MIN1' },
     // { label: '5분', value: 'MIN5' },
     // { label: '15분', value: 'MIN15' },
@@ -213,7 +213,11 @@ const StockDetailScreen: React.FC = () => {
         <Text style={[globalStyles.textLarge, globalStyles.marginBottom]}>
           가격 차트
         </Text>
-        <CandlestickChart data={candles} height={300} />
+        <CandlestickChart
+          data={candles}
+          height={300}
+          timeframe={selectedPeriod === 'DAY1' ? 'day' : 'hour'}
+        />
         {candles.length > 0 && (
           <View style={{ marginTop: 12 }}>
             <Text style={[globalStyles.textSmall, globalStyles.textCenter]}>

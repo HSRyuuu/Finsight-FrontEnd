@@ -15,6 +15,7 @@ import {
 interface CandlestickChartProps {
   data: CandleData[];
   height?: number;
+  timeframe?: 'day' | 'hour' | 'minute'; // 차트 시간 단위 추가
   // TODO: 추후 설정 가능하도록 확장
   showMA5?: boolean;
   showMA20?: boolean;
@@ -32,6 +33,7 @@ interface CandlestickChartProps {
 export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   data,
   height = 300,
+  timeframe = 'day',
   showMA5 = true,
   showMA20 = true,
   showMA60 = true,
@@ -46,6 +48,23 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
+
+  // 날짜 포맷 함수들
+  const formatDateForTooltip = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateForDisplay = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}년${month}월${day}일`;
+  };
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -68,6 +87,18 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         vertLines: { color: '#E5E5EA' },
         horzLines: { color: '#E5E5EA' },
       },
+      localization: {
+        timeFormatter:
+          timeframe === 'day'
+            ? (time: any) => {
+                const date = new Date(time * 1000);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+              }
+            : undefined,
+      },
       timeScale: {
         borderColor: '#C6C6C8',
         timeVisible: true,
@@ -75,6 +106,23 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       },
       rightPriceScale: {
         borderColor: '#C6C6C8',
+      },
+      crosshair: {
+        mode: 1, // Normal crosshair mode
+        vertLine: {
+          color: '#6B7280',
+          width: 1 as any,
+          style: 0 as any, // Dashed line
+          labelBackgroundColor: 'rgba(30, 58, 138, 0.1)',
+          labelVisible: true,
+        },
+        horzLine: {
+          color: '#9E9E9E',
+          width: 1 as any,
+          style: 0 as any, // Dashed line
+          labelBackgroundColor: 'rgba(30, 58, 138, 0.1)',
+          labelVisible: true,
+        },
       },
     };
 
@@ -90,6 +138,67 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       wickUpColor: '#FF3B30', // 양봉 꼬리 - 빨간색
       wickDownColor: '#007AFF', // 음봉 꼬리 - 파란색
     });
+
+    // 일봉일 때만 커스텀 날짜 포맷 적용
+    if (timeframe === 'day') {
+      // 크로스헤어 이벤트 리스너 추가
+      chart.subscribeCrosshairMove(param => {
+        if (param.time && param.point && chartContainerRef.current) {
+          // 기존 툴팁 제거
+          const existingTooltip =
+            chartContainerRef.current.querySelector('.custom-tooltip');
+          if (existingTooltip) {
+            existingTooltip.remove();
+          }
+
+          // 새 툴팁 생성
+          const tooltip = document.createElement('div');
+          tooltip.className = 'custom-tooltip';
+          tooltip.style.position = 'absolute';
+          tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+          tooltip.style.color = 'white';
+          tooltip.style.padding = '8px 12px';
+          tooltip.style.borderRadius = '4px';
+          tooltip.style.fontSize = '12px';
+          tooltip.style.fontFamily = 'Arial, sans-serif';
+          tooltip.style.pointerEvents = 'none';
+          tooltip.style.zIndex = '1000';
+          tooltip.style.whiteSpace = 'nowrap';
+          tooltip.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+
+          // 데이터 포인트 정보 가져오기
+          const data = param.seriesData.get(candlestickSeries);
+          if (data && typeof data === 'object' && 'open' in data) {
+            const candleData = data as any;
+            const dateStr = formatDateForTooltip(param.time as number);
+            tooltip.innerHTML = `
+              <div><strong>${dateStr}</strong></div>
+              <div>시가: ${candleData.open?.toFixed(2) || 'N/A'}</div>
+              <div>고가: ${candleData.high?.toFixed(2) || 'N/A'}</div>
+              <div>저가: ${candleData.low?.toFixed(2) || 'N/A'}</div>
+              <div>종가: ${candleData.close?.toFixed(2) || 'N/A'}</div>
+            `;
+          } else {
+            const dateStr = formatDateForTooltip(param.time as number);
+            tooltip.innerHTML = `<div><strong>${dateStr}</strong></div>`;
+          }
+
+          // 툴팁 위치 설정 (툴팁을 먼저 DOM에 추가한 후 크기 계산)
+          chartContainerRef.current.appendChild(tooltip);
+          tooltip.style.left = `${Math.max(0, param.point.x - tooltip.offsetWidth / 2)}px`;
+          tooltip.style.top = `${Math.max(0, param.point.y - tooltip.offsetHeight - 10)}px`;
+        }
+      });
+
+      // 마우스가 차트를 벗어날 때 툴팁 제거
+      chartContainerRef.current.addEventListener('mouseleave', () => {
+        const tooltip =
+          chartContainerRef.current?.querySelector('.custom-tooltip');
+        if (tooltip) {
+          tooltip.remove();
+        }
+      });
+    }
 
     // 데이터 변환 및 설정
     const chartData = data
@@ -218,7 +327,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [data, height]);
+  }, [data, height, timeframe]);
 
   if (Platform.OS !== 'web') {
     // 모바일에서는 WebView 사용 (추후 구현)
@@ -294,7 +403,7 @@ const styles = StyleSheet.create({
     left: 10,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     padding: 8,
     borderRadius: 6,
     gap: 8,
@@ -304,6 +413,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1000,
+    maxWidth: '70%',
   },
   legendItem: {
     flexDirection: 'row',

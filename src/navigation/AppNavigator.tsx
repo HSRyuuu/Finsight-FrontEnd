@@ -49,17 +49,22 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 
       {/* 두 번째 줄: 뒤로가기 + 페이지 제목 */}
       <View style={headerStyles.bottomRow}>
-        {canGoBack ? (
-          <TouchableOpacity
-            onPress={onBackPress}
-            style={headerStyles.backButton}
-          >
-            <Text style={headerStyles.backText}>← 뒤로</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={headerStyles.backButtonPlaceholder} />
-        )}
-        <Text style={headerStyles.pageTitle}>{title}</Text>
+        <View style={headerStyles.leftSection}>
+          {canGoBack && (
+            <TouchableOpacity
+              onPress={onBackPress}
+              style={headerStyles.backButton}
+            >
+              <Text style={headerStyles.backText}>← 뒤로</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={headerStyles.centerSection}>
+          <Text style={headerStyles.pageTitle}>{title}</Text>
+        </View>
+
+        <View style={headerStyles.rightSection} />
       </View>
     </View>
   );
@@ -252,8 +257,20 @@ const headerStyles = StyleSheet.create({
     paddingTop: 8,
     minHeight: 40,
   },
+  leftSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  centerSection: {
+    flex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rightSection: {
+    flex: 1,
+  },
   backButton: {
-    marginRight: 12,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
@@ -262,13 +279,11 @@ const headerStyles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
-  backButtonPlaceholder: {
-    width: 0,
-  },
   pageTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000000',
+    textAlign: 'center',
   },
 });
 
