@@ -82,9 +82,6 @@ const StockDetailScreen: React.FC = () => {
 
     // 달러 버전 (원본)
     setCandlesUSD(candles);
-    console.log('=== 차트 데이터 (USD) ===');
-    console.log('첫 번째 캔들:', candles[0]);
-    console.log('총 개수:', candles.length);
 
     // 원화 버전 (환율 적용 + 소숫점 내림)
     if (exchangeRate && exchangeRate.rate) {
@@ -99,21 +96,7 @@ const StockDetailScreen: React.FC = () => {
         currency: candle.currency,
       }));
       setCandlesKRW(krwCandles);
-      console.log('=== 차트 데이터 (KRW) ===');
-      console.log('환율:', exchangeRate.rate);
-      console.log('첫 번째 캔들 (USD):', {
-        open: candles[0].open,
-        high: candles[0].high,
-        low: candles[0].low,
-        close: candles[0].close,
-      });
-      console.log('첫 번째 캔들 (KRW):', {
-        open: krwCandles[0].open,
-        high: krwCandles[0].high,
-        low: krwCandles[0].low,
-        close: krwCandles[0].close,
-      });
-      console.log('총 개수:', krwCandles.length);
+   
     } else {
       setCandlesKRW([]);
       console.log('환율 정보 없음 - KRW 변환 불가');
@@ -164,9 +147,9 @@ const StockDetailScreen: React.FC = () => {
   };
 
   const chartPeriods: { label: string; value: ChartPeriod }[] = [
-    { label: '1일', value: 'DAY1' },
-    // { label: '1주', value: 'WEEK1' },
-    // { label: '1개월', value: 'MONTH1' },
+    { label: '일', value: 'DAY1' },
+    { label: '주', value: 'WEEK1' },
+    { label: '월', value: 'MONTH1' },
     // { label: '1분', value: 'MIN1' },
     // { label: '5분', value: 'MIN5' },
     // { label: '15분', value: 'MIN15' },
@@ -231,10 +214,7 @@ const StockDetailScreen: React.FC = () => {
   };
 
   const renderChartPeriodSelector = () => (
-    <Card style={globalStyles.marginBottom}>
-      <Text style={[globalStyles.textLarge, globalStyles.marginBottom]}>
-        차트 기간
-      </Text>
+    <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
       <View style={[globalStyles.row, { flexWrap: 'wrap' }]}>
         {chartPeriods.map(period => (
           <TouchableOpacity
@@ -249,9 +229,9 @@ const StockDetailScreen: React.FC = () => {
                 borderRadius: 16,
                 borderWidth: 1,
                 borderColor:
-                  selectedPeriod === period.value ? '#007AFF' : '#C6C6C8',
+                  selectedPeriod === period.value ? '#1B3A57' : '#C6C6C8',
                 backgroundColor:
-                  selectedPeriod === period.value ? '#007AFF' : 'transparent',
+                  selectedPeriod === period.value ? '#1B3A57' : 'transparent',
               },
             ]}
           >
@@ -270,7 +250,7 @@ const StockDetailScreen: React.FC = () => {
           </TouchableOpacity>
         ))}
       </View>
-    </Card>
+    </View>
   );
 
   const renderChart = () => {
@@ -298,20 +278,13 @@ const StockDetailScreen: React.FC = () => {
     // 선택된 통화에 따라 미리 계산된 데이터 사용
     const chartData = displayCurrency === 'KRW' ? candlesKRW : candlesUSD;
 
-    console.log('=== 차트 렌더링 ===');
-    console.log('선택된 통화:', displayCurrency);
-    console.log('사용할 데이터:', chartData.length > 0 ? chartData[0] : '없음');
-
     // 데이터가 없으면 원본 사용
     const finalChartData = chartData.length > 0 ? chartData : candles;
 
     // Lightweight Charts 사용
     // key prop을 사용하여 통화가 변경되면 차트를 완전히 다시 렌더링
     return (
-      <Card>
-        <Text style={[globalStyles.textLarge, globalStyles.marginBottom]}>
-          가격 차트
-        </Text>
+      <View style={{ marginBottom: 16, width: '100%' }}>
         <CandlestickChart
           key={`chart-${displayCurrency}-${selectedPeriod}`}
           data={finalChartData}
@@ -319,14 +292,7 @@ const StockDetailScreen: React.FC = () => {
           timeframe={selectedPeriod === 'DAY1' ? 'day' : 'hour'}
           currency={displayCurrency}
         />
-        {candles.length > 0 && (
-          <View style={{ marginTop: 12 }}>
-            <Text style={[globalStyles.textSmall, globalStyles.textCenter]}>
-              {/* 📊 {candles.length}개 데이터 포인트 • {selectedPeriod} */}
-            </Text>
-          </View>
-        )}
-      </Card>
+      </View>
     );
   };
 
@@ -570,9 +536,12 @@ const StockDetailScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={globalStyles.container}>
-      <View style={globalStyles.content}>
-        {/* 헤더: 종목명과 통화 토글 */}
+    <ScrollView
+      style={globalStyles.container}
+      contentContainerStyle={{ flexGrow: 1 }}
+    >
+      {/* 헤더: 종목명과 통화 토글 */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
         <View
           style={[
             globalStyles.row,
@@ -641,10 +610,14 @@ const StockDetailScreen: React.FC = () => {
             </View>
           </View>
         </View>
+      </View>
 
-        {renderPriceInfo()}
-        {renderChartPeriodSelector()}
-        {renderChart()}
+      <View style={{ paddingHorizontal: 16 }}>{renderPriceInfo()}</View>
+
+      {renderChartPeriodSelector()}
+      {renderChart()}
+
+      <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
         {renderStockInfo()}
       </View>
     </ScrollView>

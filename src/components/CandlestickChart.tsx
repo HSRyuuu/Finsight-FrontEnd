@@ -245,11 +245,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     // 볼린저 밴드 추가 (20일 이평선 = 볼린저 밴드 중간선)
     if (showBollingerBands && data.length >= bbPeriod) {
       const bollingerBands = calculateBollingerBands(data, bbPeriod, bbStdDev);
-      console.log('볼린저 밴드:', {
-        upper: bollingerBands.upper.slice(0, 3),
-        middle: bollingerBands.middle.slice(0, 3),
-        lower: bollingerBands.lower.slice(0, 3),
-      }); // 디버깅용
 
       if (bollingerBands.upper.length > 0) {
         // 상단 밴드
@@ -284,7 +279,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     // 5일 이동평균선 추가
     if (showMA5 && data.length >= ma5Period) {
       const ma5Data = calculateMovingAverage(data, ma5Period);
-      console.log('MA5 데이터:', ma5Data.slice(0, 3)); // 디버깅용
 
       if (ma5Data.length > 0) {
         const ma5Series = chart.addSeries(LineSeries, {
@@ -300,7 +294,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     // 60일 이동평균선 추가
     if (showMA60 && data.length >= ma60Period) {
       const ma60Data = calculateMovingAverage(data, ma60Period);
-      console.log('MA60 데이터:', ma60Data.slice(0, 3)); // 디버깅용
 
       if (ma60Data.length > 0) {
         const ma60Series = chart.addSeries(LineSeries, {
@@ -316,7 +309,6 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     // 200일 이동평균선 추가
     if (showMA200 && data.length >= ma200Period) {
       const ma200Data = calculateMovingAverage(data, ma200Period);
-      console.log('MA200 데이터:', ma200Data.slice(0, 3)); // 디버깅용
 
       if (ma200Data.length > 0) {
         const ma200Series = chart.addSeries(LineSeries, {
