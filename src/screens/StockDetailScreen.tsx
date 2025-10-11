@@ -35,6 +35,9 @@ const StockDetailScreen: React.FC = () => {
   const { symbol, name } = route.params;
   const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>('DAY1');
   const [displayCurrency, setDisplayCurrency] = useState<'USD' | 'KRW'>('USD');
+  const [selectedTab, setSelectedTab] = useState<
+    'chart' | 'info' | 'community'
+  >('chart');
 
   // 1단계: 캔들 상태 확인
   const {
@@ -96,7 +99,6 @@ const StockDetailScreen: React.FC = () => {
         currency: candle.currency,
       }));
       setCandlesKRW(krwCandles);
-   
     } else {
       setCandlesKRW([]);
       console.log('환율 정보 없음 - KRW 변환 불가');
@@ -148,8 +150,8 @@ const StockDetailScreen: React.FC = () => {
 
   const chartPeriods: { label: string; value: ChartPeriod }[] = [
     { label: '일', value: 'DAY1' },
-    { label: '주', value: 'WEEK1' },
-    { label: '월', value: 'MONTH1' },
+    // { label: '주', value: 'WEEK1' },
+    // { label: '월', value: 'MONTH1' },
     // { label: '1분', value: 'MIN1' },
     // { label: '5분', value: 'MIN5' },
     // { label: '15분', value: 'MIN15' },
@@ -182,33 +184,150 @@ const StockDetailScreen: React.FC = () => {
       );
     }
 
+    // 주 가격과 보조 가격 계산
+    const isUSD = price.currency === 'USD' || !price.currency;
+
+    let mainPrice: string;
+    let subPrice: string | null = null;
+
+    if (isUSD && exchangeRate) {
+      // USD 종목인 경우
+      if (displayCurrency === 'KRW') {
+        // 원화 선택: 원화가 메인, 달러가 보조
+        mainPrice = `${Math.floor(price.currentPrice * exchangeRate.rate).toLocaleString()}원`;
+        subPrice = `$${price.currentPrice.toFixed(2)}`;
+      } else {
+        // 달러 선택: 달러가 메인, 원화가 보조
+        mainPrice = `$${price.currentPrice.toFixed(2)}`;
+        subPrice = `${Math.floor(price.currentPrice * exchangeRate.rate).toLocaleString()}원`;
+      }
+    } else {
+      // KRW 종목 또는 환율 정보 없음
+      mainPrice =
+        price.currency === 'KRW'
+          ? `${Math.floor(price.currentPrice).toLocaleString()}원`
+          : `$${price.currentPrice.toFixed(2)}`;
+    }
+
     return (
-      <Card style={[globalStyles.centerContent, globalStyles.marginBottom]}>
-        <Text style={[globalStyles.textTitle, globalStyles.textCenter]}>
-          {formatPriceInDisplayCurrency(price.currentPrice, price.currency)}
-        </Text>
-        <Text
-          style={[
-            globalStyles.textLarge,
-            globalStyles.textCenter,
-            { color: getPriceChangeColor(price.change) },
-          ]}
+      <Card style={[globalStyles.marginBottom, { position: 'relative' }]}>
+        {/* 통화 스위치 - 오른쪽 위 */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 1,
+          }}
         >
-          {price.change > 0 ? '+' : ''}
-          {formatPriceInDisplayCurrency(price.change, price.currency)} (
-          {price.changePercent > 0 ? '+' : ''}
-          {price.changePercent.toFixed(2)}%)
-        </Text>
-        <Text
-          style={[
-            globalStyles.textSmall,
-            globalStyles.textCenter,
-            globalStyles.marginTop,
-          ]}
-        >
-          전일 종가:{' '}
-          {formatPriceInDisplayCurrency(price.previousClose, price.currency)}
-        </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: '#E5E5EA',
+              backgroundColor: '#F2F2F7',
+              padding: 2,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setDisplayCurrency('USD')}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 6,
+                backgroundColor:
+                  displayCurrency === 'USD' ? '#1B3A57' : 'transparent',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: displayCurrency === 'USD' ? '#FFFFFF' : '#8E8E93',
+                }}
+              >
+                $
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setDisplayCurrency('KRW')}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 6,
+                backgroundColor:
+                  displayCurrency === 'KRW' ? '#1B3A57' : 'transparent',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: displayCurrency === 'KRW' ? '#FFFFFF' : '#8E8E93',
+                }}
+              >
+                원
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 가격 정보 - 왼쪽 정렬 */}
+        <View style={{ alignItems: 'flex-start' }}>
+          {/* 심볼 */}
+          <Text
+            style={{
+              fontSize: 16,
+              color: '#8E8E93',
+              marginBottom: 8,
+            }}
+          >
+            {symbol}
+          </Text>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'baseline',
+              marginBottom: 4,
+            }}
+          >
+            <Text style={[globalStyles.textTitle]}>{mainPrice}</Text>
+            {subPrice && (
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#8E8E93',
+                  marginLeft: 8,
+                }}
+              >
+                {subPrice}
+              </Text>
+            )}
+          </View>
+          <Text
+            style={[
+              globalStyles.textLarge,
+              {
+                color: getPriceChangeColor(price.change),
+                marginBottom: 8,
+              },
+            ]}
+          >
+            {price.change > 0 ? '+' : price.change < 0 ? '-' : ''}
+            {formatPriceInDisplayCurrency(
+              Math.abs(price.change),
+              price.currency
+            )}{' '}
+            ({price.changePercent > 0 ? '+' : ''}
+            {price.changePercent.toFixed(2)}%)
+          </Text>
+          <Text style={[globalStyles.textSmall]}>
+            전일 종가:{' '}
+            {formatPriceInDisplayCurrency(price.previousClose, price.currency)}
+          </Text>
+        </View>
       </Card>
     );
   };
@@ -540,86 +659,117 @@ const StockDetailScreen: React.FC = () => {
       style={globalStyles.container}
       contentContainerStyle={{ flexGrow: 1 }}
     >
-      {/* 헤더: 종목명과 통화 토글 */}
+      {/* 헤더: 종목명 */}
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-        <View
-          style={[
-            globalStyles.row,
-            globalStyles.spaceBetween,
-            { alignItems: 'center', marginBottom: 16 },
-          ]}
-        >
-          <View style={{ flex: 1 }} />
-          <Text
-            style={[globalStyles.textTitle, { flex: 2, textAlign: 'center' }]}
-          >
-            {name}
-          </Text>
-          <View style={{ flex: 1, alignItems: 'flex-end' }}>
-            {/* 통화 스위치 */}
-            <View
-              style={{
-                flexDirection: 'row',
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: '#E5E5EA',
-                backgroundColor: '#F2F2F7',
-                padding: 2,
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => setDisplayCurrency('USD')}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  backgroundColor:
-                    displayCurrency === 'USD' ? '#1B3A57' : 'transparent',
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '600',
-                    color: displayCurrency === 'USD' ? '#FFFFFF' : '#8E8E93',
-                  }}
-                >
-                  $
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setDisplayCurrency('KRW')}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  backgroundColor:
-                    displayCurrency === 'KRW' ? '#1B3A57' : 'transparent',
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '600',
-                    color: displayCurrency === 'KRW' ? '#FFFFFF' : '#8E8E93',
-                  }}
-                >
-                  원
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <Text style={[globalStyles.textTitle, { marginBottom: 16 }]}>
+          {name}
+        </Text>
       </View>
 
       <View style={{ paddingHorizontal: 16 }}>{renderPriceInfo()}</View>
 
-      {renderChartPeriodSelector()}
-      {renderChart()}
-
-      <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-        {renderStockInfo()}
+      {/* 탭 메뉴 */}
+      <View
+        style={{
+          flexDirection: 'row',
+          borderBottomWidth: 1,
+          borderBottomColor: '#E5E5EA',
+          paddingHorizontal: 16,
+          marginBottom: 16,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => setSelectedTab('chart')}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderBottomWidth: 2,
+            borderBottomColor:
+              selectedTab === 'chart' ? '#1B3A57' : 'transparent',
+          }}
+        >
+          <Text
+            style={{
+              textAlign: 'center',
+              fontSize: 16,
+              fontWeight: selectedTab === 'chart' ? '600' : '400',
+              color: selectedTab === 'chart' ? '#1B3A57' : '#8E8E93',
+            }}
+          >
+            차트
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setSelectedTab('info')}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderBottomWidth: 2,
+            borderBottomColor:
+              selectedTab === 'info' ? '#1B3A57' : 'transparent',
+          }}
+        >
+          <Text
+            style={{
+              textAlign: 'center',
+              fontSize: 16,
+              fontWeight: selectedTab === 'info' ? '600' : '400',
+              color: selectedTab === 'info' ? '#1B3A57' : '#8E8E93',
+            }}
+          >
+            종목정보
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setSelectedTab('community')}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderBottomWidth: 2,
+            borderBottomColor:
+              selectedTab === 'community' ? '#1B3A57' : 'transparent',
+          }}
+        >
+          <Text
+            style={{
+              textAlign: 'center',
+              fontSize: 16,
+              fontWeight: selectedTab === 'community' ? '600' : '400',
+              color: selectedTab === 'community' ? '#1B3A57' : '#8E8E93',
+            }}
+          >
+            커뮤니티
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* 탭 컨텐츠 */}
+      {selectedTab === 'chart' && (
+        <>
+          {renderChartPeriodSelector()}
+          {renderChart()}
+        </>
+      )}
+
+      {selectedTab === 'info' && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+          {renderStockInfo()}
+        </View>
+      )}
+
+      {selectedTab === 'community' && (
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 40,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: '#8E8E93', fontSize: 16 }}>
+            커뮤니티 기능 준비 중입니다.
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 };
