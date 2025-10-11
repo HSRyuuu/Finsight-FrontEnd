@@ -1,6 +1,6 @@
 // API 기본 설정
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api';
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 
 // 앱 설정
 export const APP_CONFIG = {

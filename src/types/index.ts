@@ -29,6 +29,7 @@ export interface StockPrice {
   high52Week: number;
   low52Week: number;
   lastUpdated: string;
+  currency?: 'KRW' | 'USD';
 }
 
 // 캔들 차트 데이터
@@ -94,6 +95,14 @@ export interface SearchResult {
   isin: string;
   cusip: string;
   metaData: any;
+}
+
+// 캔들 데이터 상태
+export interface CandleStatus {
+  symbol: string;
+  ready: boolean;
+  state: string;
+  message: string;
 }
 
 // 네비게이션 타입

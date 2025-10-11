@@ -6,6 +6,7 @@ import {
   StockPrice,
   CandleData,
   MarketStatus,
+  CandleStatus,
 } from '../types';
 
 // 종목 검색 훅
@@ -50,14 +51,86 @@ export const useStockSearch = (query: string) => {
   };
 };
 
+// 캔들 데이터 상태 확인 훅
+export const useCandleStatus = (symbol: string) => {
+  const [status, setStatus] = useState<CandleStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const checkStatus = async () => {
+    if (!symbol) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await stockService.getCandleStatus(symbol);
+      setStatus(data);
+      return data;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : '캔들 상태를 확인하는데 실패했습니다.'
+      );
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    let attemptCount = 0;
+    const delays = [300, 600, 900]; // 300ms, 600ms, 900ms
+
+    const pollStatus = async () => {
+      const result = await checkStatus();
+
+      // ready가 true이면 성공
+      if (result && result.ready) {
+        return;
+      }
+
+      // 실패했지만 아직 시도 횟수가 남았으면 재시도
+      if (attemptCount < delays.length) {
+        const delay = delays[attemptCount];
+        attemptCount++;
+
+        timeoutId = setTimeout(() => {
+          pollStatus();
+        }, delay);
+      } else {
+        // 3번 모두 실패
+        setError('데이터를 수집하지 못했습니다.');
+        setLoading(false);
+      }
+    };
+
+    pollStatus();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [symbol]);
+
+  return {
+    status,
+    loading,
+    error,
+    refetch: checkStatus,
+  };
+};
+
 // 종목 상세 정보 훅
-export const useStock = (symbol: string) => {
+export const useStock = (symbol: string, shouldFetch: boolean = true) => {
   const [stock, setStock] = useState<Stock | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStock = async () => {
-    if (!symbol) return;
+    if (!symbol || !shouldFetch) return;
 
     try {
       setLoading(true);
@@ -76,8 +149,10 @@ export const useStock = (symbol: string) => {
   };
 
   useEffect(() => {
-    fetchStock();
-  }, [symbol]);
+    if (shouldFetch) {
+      fetchStock();
+    }
+  }, [symbol, shouldFetch]);
 
   return {
     stock,
@@ -125,13 +200,17 @@ export const useStockPrice = (symbol: string) => {
 };
 
 // 캔들 차트 데이터 훅
-export const useCandleData = (symbol: string, period: string) => {
+export const useCandleData = (
+  symbol: string,
+  period: string,
+  shouldFetch: boolean = true
+) => {
   const [candles, setCandles] = useState<CandleData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchCandles = async () => {
-    if (!symbol || !period) return;
+    if (!symbol || !period || !shouldFetch) return;
 
     try {
       setLoading(true);
@@ -150,8 +229,10 @@ export const useCandleData = (symbol: string, period: string) => {
   };
 
   useEffect(() => {
-    fetchCandles();
-  }, [symbol, period]);
+    if (shouldFetch) {
+      fetchCandles();
+    }
+  }, [symbol, period, shouldFetch]);
 
   return {
     candles,

@@ -9,12 +9,13 @@ import {
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { SearchStackParamList, ChartPeriod } from '../types';
 import {
+  useCandleStatus,
   useStock,
   useStockPrice,
   useCandleData,
   useIsFavorite,
+  useFavorites,
 } from '../hooks';
-import { useFavorites } from '../hooks';
 import { globalStyles, componentStyles } from '../styles';
 import {
   Card,
@@ -33,7 +34,22 @@ const StockDetailScreen: React.FC = () => {
   const { symbol, name } = route.params;
   const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>('DAY1');
 
-  const { stock, loading: stockLoading, error: stockError } = useStock(symbol);
+  // 1단계: 캔들 상태 확인
+  const {
+    status: candleStatus,
+    loading: statusLoading,
+    error: statusError,
+  } = useCandleStatus(symbol);
+
+  // ready가 true일 때만 데이터 로드
+  const isReady = candleStatus?.ready === true;
+
+  // 2단계: ready=true일 때만 종목 상세 정보와 캔들 데이터 조회
+  const {
+    stock,
+    loading: stockLoading,
+    error: stockError,
+  } = useStock(symbol, isReady);
   const {
     price,
     loading: priceLoading,
@@ -43,7 +59,7 @@ const StockDetailScreen: React.FC = () => {
     candles,
     loading: candlesLoading,
     error: candlesError,
-  } = useCandleData(symbol, selectedPeriod);
+  } = useCandleData(symbol, selectedPeriod, isReady);
   const { isFavorite, loading: favoriteLoading } = useIsFavorite(symbol);
   const { addFavorite, removeFavorite } = useFavorites();
 
@@ -56,6 +72,8 @@ const StockDetailScreen: React.FC = () => {
           symbol,
           name,
           exchange: stock?.exchange || 'KRX',
+          stockType: stock?.stockType || 'STOCK',
+          currency: stock?.currency || 'KRW',
         });
       }
     } catch (error) {
@@ -125,7 +143,7 @@ const StockDetailScreen: React.FC = () => {
           ]}
         >
           {price.change > 0 ? '+' : ''}
-          {formatPrice(price.change, price.currency || 'KRW')}(
+          {formatPrice(price.change, price.currency || 'USD')}(
           {price.changePercent > 0 ? '+' : ''}
           {price.changePercent.toFixed(2)}%)
         </Text>
@@ -136,7 +154,7 @@ const StockDetailScreen: React.FC = () => {
             globalStyles.marginTop,
           ]}
         >
-          전일 종가: {formatPrice(price.previousClose, price.currency || 'KRW')}
+          전일 종가: {formatPrice(price.previousClose, price.currency || 'USD')}
         </Text>
       </Card>
     );
@@ -374,7 +392,7 @@ const StockDetailScreen: React.FC = () => {
             </Text>
           </View>
 
-          <View
+          {/* <View
             style={[
               globalStyles.row,
               globalStyles.spaceBetween,
@@ -387,7 +405,7 @@ const StockDetailScreen: React.FC = () => {
                 ? `${(price.marketCap / 1000000000).toFixed(1)}B`
                 : 'N/A'}
             </Text>
-          </View>
+          </View> */}
 
           <View
             style={[
@@ -421,10 +439,41 @@ const StockDetailScreen: React.FC = () => {
     );
   };
 
+  // 캔들 상태 확인 중
+  if (statusLoading) {
+    return <LoadingSpinner message="데이터 준비 상태를 확인하는 중..." />;
+  }
+
+  // 캔들 상태 확인 오류
+  if (statusError) {
+    return (
+      <View style={globalStyles.centerContent}>
+        <ErrorMessage message={statusError} />
+      </View>
+    );
+  }
+
+  // 캔들 데이터가 아직 준비되지 않음
+  if (candleStatus && !candleStatus.ready) {
+    return (
+      <View style={globalStyles.centerContent}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={[globalStyles.text, globalStyles.marginTop]}>
+          {candleStatus.message || '데이터를 준비하고 있습니다...'}
+        </Text>
+        <Text style={[globalStyles.textSmall, globalStyles.marginTop]}>
+          잠시만 기다려주세요. 자동으로 새로고침됩니다.
+        </Text>
+      </View>
+    );
+  }
+
+  // 종목 정보 로딩 중
   if (stockLoading) {
     return <LoadingSpinner message="종목 정보를 불러오는 중..." />;
   }
 
+  // 종목 정보 오류
   if (stockError) {
     return (
       <View style={globalStyles.centerContent}>
