@@ -6,5 +6,6 @@ export {
   useStockPrice,
   useCandleData,
   useMarketStatus,
+  useExchangeRate,
 } from './useStocks';
 export { useFavorites, useIsFavorite } from './useFavorites';

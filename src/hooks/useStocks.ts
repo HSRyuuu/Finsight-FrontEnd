@@ -7,6 +7,7 @@ import {
   CandleData,
   MarketStatus,
   CandleStatus,
+  ExchangeRate,
 } from '../types';
 
 // 종목 검색 훅
@@ -274,5 +275,43 @@ export const useMarketStatus = () => {
     loading,
     error,
     refetch: fetchStatus,
+  };
+};
+
+// 환율 조회 훅
+export const useExchangeRate = (
+  base: string = 'USD',
+  quote: string = 'KRW'
+) => {
+  const [rate, setRate] = useState<ExchangeRate | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchRate = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await stockService.getExchangeRate(base, quote);
+      setRate(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : '환율 정보를 불러오는데 실패했습니다.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRate();
+  }, [base, quote]);
+
+  return {
+    rate,
+    loading,
+    error,
+    refetch: fetchRate,
   };
 };

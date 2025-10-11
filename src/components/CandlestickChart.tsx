@@ -16,6 +16,7 @@ interface CandlestickChartProps {
   data: CandleData[];
   height?: number;
   timeframe?: 'day' | 'hour' | 'minute'; // 차트 시간 단위 추가
+  currency?: 'USD' | 'KRW'; // 통화 표시
   // TODO: 추후 설정 가능하도록 확장
   showMA5?: boolean;
   showMA20?: boolean;
@@ -34,6 +35,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   data,
   height = 300,
   timeframe = 'day',
+  currency = 'USD',
   showMA5 = true,
   showMA20 = true,
   showMA60 = true,
@@ -98,6 +100,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                 return `${year}-${month}-${day}`;
               }
             : undefined,
+        priceFormatter: (price: number) => {
+          if (currency === 'KRW') {
+            return Math.floor(price).toLocaleString();
+          }
+          return price.toFixed(2);
+        },
       },
       timeScale: {
         borderColor: '#C6C6C8',
@@ -171,12 +179,21 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           if (data && typeof data === 'object' && 'open' in data) {
             const candleData = data as any;
             const dateStr = formatDateForTooltip(param.time as number);
+
+            // 가격 포맷 함수
+            const formatPrice = (value: number) => {
+              if (currency === 'KRW') {
+                return `${Math.floor(value).toLocaleString()}원`;
+              }
+              return `$${value.toFixed(2)}`;
+            };
+
             tooltip.innerHTML = `
               <div><strong>${dateStr}</strong></div>
-              <div>시가: ${candleData.open?.toFixed(2) || 'N/A'}</div>
-              <div>고가: ${candleData.high?.toFixed(2) || 'N/A'}</div>
-              <div>저가: ${candleData.low?.toFixed(2) || 'N/A'}</div>
-              <div>종가: ${candleData.close?.toFixed(2) || 'N/A'}</div>
+              <div>시가: ${candleData.open ? formatPrice(candleData.open) : 'N/A'}</div>
+              <div>고가: ${candleData.high ? formatPrice(candleData.high) : 'N/A'}</div>
+              <div>저가: ${candleData.low ? formatPrice(candleData.low) : 'N/A'}</div>
+              <div>종가: ${candleData.close ? formatPrice(candleData.close) : 'N/A'}</div>
             `;
           } else {
             const dateStr = formatDateForTooltip(param.time as number);
@@ -327,7 +344,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [data, height, timeframe]);
+  }, [data, height, timeframe, currency]);
 
   if (Platform.OS !== 'web') {
     // 모바일에서는 WebView 사용 (추후 구현)

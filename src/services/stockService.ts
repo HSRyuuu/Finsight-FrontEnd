@@ -7,6 +7,7 @@ import {
   MarketStatus,
   FavoriteStock,
   CandleStatus,
+  ExchangeRate,
 } from '../types';
 
 export class StockService {
@@ -148,6 +149,21 @@ export class StockService {
       return await apiService.get<Stock[]>(`/api/stock/sector/${sector}`);
     } catch (error) {
       console.error(`섹터 ${sector} 종목 조회 실패:`, error);
+      throw error;
+    }
+  }
+
+  // 환율 조회
+  async getExchangeRate(
+    base: string = 'USD',
+    quote: string = 'KRW'
+  ): Promise<ExchangeRate> {
+    try {
+      return await apiService.get<ExchangeRate>(
+        `/api/exchange/current?base=${base}&quote=${quote}`
+      );
+    } catch (error) {
+      console.error(`환율 ${base}/${quote} 조회 실패:`, error);
       throw error;
     }
   }

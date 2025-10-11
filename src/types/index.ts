@@ -105,6 +105,14 @@ export interface CandleStatus {
   message: string;
 }
 
+// 환율 정보
+export interface ExchangeRate {
+  baseCurrency: string;
+  quoteCurrency: string;
+  rate: number;
+  lastUpdated: string;
+}
+
 // 네비게이션 타입
 export type TabParamList = {
   Home: undefined;

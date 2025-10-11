@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { SearchStackParamList, ChartPeriod } from '../types';
+import { SearchStackParamList, ChartPeriod, CandleData } from '../types';
 import {
   useCandleStatus,
   useStock,
@@ -15,6 +15,7 @@ import {
   useCandleData,
   useIsFavorite,
   useFavorites,
+  useExchangeRate,
 } from '../hooks';
 import { globalStyles, componentStyles } from '../styles';
 import {
@@ -33,6 +34,7 @@ const StockDetailScreen: React.FC = () => {
   const route = useRoute<StockDetailScreenRouteProp>();
   const { symbol, name } = route.params;
   const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>('DAY1');
+  const [displayCurrency, setDisplayCurrency] = useState<'USD' | 'KRW'>('USD');
 
   // 1단계: 캔들 상태 확인
   const {
@@ -63,6 +65,61 @@ const StockDetailScreen: React.FC = () => {
   const { isFavorite, loading: favoriteLoading } = useIsFavorite(symbol);
   const { addFavorite, removeFavorite } = useFavorites();
 
+  // 환율 정보 조회
+  const { rate: exchangeRate } = useExchangeRate('USD', 'KRW');
+
+  // 차트 데이터 - 달러와 원화 버전을 미리 계산
+  const [candlesUSD, setCandlesUSD] = useState<CandleData[]>([]);
+  const [candlesKRW, setCandlesKRW] = useState<CandleData[]>([]);
+
+  // 차트 데이터가 로드되면 달러/원화 버전 모두 계산
+  useEffect(() => {
+    if (!candles || candles.length === 0) {
+      setCandlesUSD([]);
+      setCandlesKRW([]);
+      return;
+    }
+
+    // 달러 버전 (원본)
+    setCandlesUSD(candles);
+    console.log('=== 차트 데이터 (USD) ===');
+    console.log('첫 번째 캔들:', candles[0]);
+    console.log('총 개수:', candles.length);
+
+    // 원화 버전 (환율 적용 + 소숫점 내림)
+    if (exchangeRate && exchangeRate.rate) {
+      const krwCandles = candles.map(candle => ({
+        datetime: candle.datetime,
+        time: candle.time,
+        open: Math.floor(candle.open * exchangeRate.rate),
+        high: Math.floor(candle.high * exchangeRate.rate),
+        low: Math.floor(candle.low * exchangeRate.rate),
+        close: Math.floor(candle.close * exchangeRate.rate),
+        volume: candle.volume,
+        currency: candle.currency,
+      }));
+      setCandlesKRW(krwCandles);
+      console.log('=== 차트 데이터 (KRW) ===');
+      console.log('환율:', exchangeRate.rate);
+      console.log('첫 번째 캔들 (USD):', {
+        open: candles[0].open,
+        high: candles[0].high,
+        low: candles[0].low,
+        close: candles[0].close,
+      });
+      console.log('첫 번째 캔들 (KRW):', {
+        open: krwCandles[0].open,
+        high: krwCandles[0].high,
+        low: krwCandles[0].low,
+        close: krwCandles[0].close,
+      });
+      console.log('총 개수:', krwCandles.length);
+    } else {
+      setCandlesKRW([]);
+      console.log('환율 정보 없음 - KRW 변환 불가');
+    }
+  }, [candles, exchangeRate]);
+
   const handleFavoriteToggle = async () => {
     try {
       if (isFavorite) {
@@ -81,11 +138,23 @@ const StockDetailScreen: React.FC = () => {
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    if (currency === 'KRW') {
-      return `${price.toLocaleString()}원`;
+  // 선택된 통화로 가격 표시
+  const formatPriceInDisplayCurrency = (
+    usdPrice: number,
+    originalCurrency?: string
+  ) => {
+    // 원래 통화가 KRW인 경우 그대로 표시
+    if (originalCurrency === 'KRW') {
+      return `${Math.floor(usdPrice).toLocaleString()}원`;
     }
-    return `$${price.toFixed(2)}`;
+
+    // USD 가격인 경우 선택된 통화에 따라 변환
+    if (displayCurrency === 'KRW' && exchangeRate) {
+      const krwPrice = Math.floor(usdPrice * exchangeRate.rate);
+      return `${krwPrice.toLocaleString()}원`;
+    }
+
+    return `$${usdPrice.toFixed(2)}`;
   };
 
   const getPriceChangeColor = (change: number) => {
@@ -133,7 +202,7 @@ const StockDetailScreen: React.FC = () => {
     return (
       <Card style={[globalStyles.centerContent, globalStyles.marginBottom]}>
         <Text style={[globalStyles.textTitle, globalStyles.textCenter]}>
-          {formatPrice(price.currentPrice, price.currency || 'KRW')}
+          {formatPriceInDisplayCurrency(price.currentPrice, price.currency)}
         </Text>
         <Text
           style={[
@@ -143,7 +212,7 @@ const StockDetailScreen: React.FC = () => {
           ]}
         >
           {price.change > 0 ? '+' : ''}
-          {formatPrice(price.change, price.currency || 'USD')}(
+          {formatPriceInDisplayCurrency(price.change, price.currency)} (
           {price.changePercent > 0 ? '+' : ''}
           {price.changePercent.toFixed(2)}%)
         </Text>
@@ -154,7 +223,8 @@ const StockDetailScreen: React.FC = () => {
             globalStyles.marginTop,
           ]}
         >
-          전일 종가: {formatPrice(price.previousClose, price.currency || 'USD')}
+          전일 종가:{' '}
+          {formatPriceInDisplayCurrency(price.previousClose, price.currency)}
         </Text>
       </Card>
     );
@@ -225,16 +295,29 @@ const StockDetailScreen: React.FC = () => {
       );
     }
 
+    // 선택된 통화에 따라 미리 계산된 데이터 사용
+    const chartData = displayCurrency === 'KRW' ? candlesKRW : candlesUSD;
+
+    console.log('=== 차트 렌더링 ===');
+    console.log('선택된 통화:', displayCurrency);
+    console.log('사용할 데이터:', chartData.length > 0 ? chartData[0] : '없음');
+
+    // 데이터가 없으면 원본 사용
+    const finalChartData = chartData.length > 0 ? chartData : candles;
+
     // Lightweight Charts 사용
+    // key prop을 사용하여 통화가 변경되면 차트를 완전히 다시 렌더링
     return (
       <Card>
         <Text style={[globalStyles.textLarge, globalStyles.marginBottom]}>
           가격 차트
         </Text>
         <CandlestickChart
-          data={candles}
+          key={`chart-${displayCurrency}-${selectedPeriod}`}
+          data={finalChartData}
           height={300}
           timeframe={selectedPeriod === 'DAY1' ? 'day' : 'hour'}
+          currency={displayCurrency}
         />
         {candles.length > 0 && (
           <View style={{ marginTop: 12 }}>
@@ -375,7 +458,9 @@ const StockDetailScreen: React.FC = () => {
           >
             <Text style={globalStyles.text}>52주 최고가</Text>
             <Text style={globalStyles.text}>
-              {price?.high52Week ? formatPrice(price.high52Week, 'KRW') : 'N/A'}
+              {price?.high52Week
+                ? formatPriceInDisplayCurrency(price.high52Week, price.currency)
+                : 'N/A'}
             </Text>
           </View>
 
@@ -388,7 +473,9 @@ const StockDetailScreen: React.FC = () => {
           >
             <Text style={globalStyles.text}>52주 최저가</Text>
             <Text style={globalStyles.text}>
-              {price?.low52Week ? formatPrice(price.low52Week, 'KRW') : 'N/A'}
+              {price?.low52Week
+                ? formatPriceInDisplayCurrency(price.low52Week, price.currency)
+                : 'N/A'}
             </Text>
           </View>
 
@@ -485,15 +572,75 @@ const StockDetailScreen: React.FC = () => {
   return (
     <ScrollView style={globalStyles.container}>
       <View style={globalStyles.content}>
-        <Text
+        {/* 헤더: 종목명과 통화 토글 */}
+        <View
           style={[
-            globalStyles.textTitle,
-            globalStyles.textCenter,
-            globalStyles.marginBottom,
+            globalStyles.row,
+            globalStyles.spaceBetween,
+            { alignItems: 'center', marginBottom: 16 },
           ]}
         >
-          {name}
-        </Text>
+          <View style={{ flex: 1 }} />
+          <Text
+            style={[globalStyles.textTitle, { flex: 2, textAlign: 'center' }]}
+          >
+            {name}
+          </Text>
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+            {/* 통화 스위치 */}
+            <View
+              style={{
+                flexDirection: 'row',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#E5E5EA',
+                backgroundColor: '#F2F2F7',
+                padding: 2,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => setDisplayCurrency('USD')}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  backgroundColor:
+                    displayCurrency === 'USD' ? '#1B3A57' : 'transparent',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: displayCurrency === 'USD' ? '#FFFFFF' : '#8E8E93',
+                  }}
+                >
+                  $
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setDisplayCurrency('KRW')}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  backgroundColor:
+                    displayCurrency === 'KRW' ? '#1B3A57' : 'transparent',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: displayCurrency === 'KRW' ? '#FFFFFF' : '#8E8E93',
+                  }}
+                >
+                  원
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
 
         {renderPriceInfo()}
         {renderChartPeriodSelector()}
