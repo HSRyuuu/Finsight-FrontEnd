@@ -21,6 +21,9 @@ const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { favorites, loading, error, refetch } = useFavorites();
   const { status: marketStatus } = useMarketStatus();
+  const [selectedTab, setSelectedTab] = React.useState<
+    'watchlist' | 'tab2' | 'tab3'
+  >('watchlist');
 
   const handleStockPress = (stock: FavoriteStock) => {
     navigation.navigate('StockDetail', {
@@ -113,7 +116,7 @@ const HomeScreen: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="즐겨찾기 목록을 불러오는 중..." />;
+    return <LoadingSpinner message="관심 종목을 불러오는 중..." />;
   }
 
   if (error) {
@@ -126,57 +129,152 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={globalStyles.container}>
-      <View style={globalStyles.content}>
-        {/* 로고 헤더 */}
-        {/* <View
-          style={[
-            globalStyles.row,
-            globalStyles.centerContent,
-            globalStyles.marginBottom,
-          ]}
+      <View style={{ flex: 1 }}>
+        {/* 탭 메뉴 */}
+        <View
+          style={{
+            flexDirection: 'row',
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E5EA',
+            paddingHorizontal: 16,
+            paddingTop: 16,
+          }}
         >
-          <Logo size={50} showText={true} />
-        </View> */}
-
-        {renderMarketStatus()}
-
-        <Text style={[globalStyles.textLarge, globalStyles.marginBottom]}>
-          즐겨찾기 종목
-        </Text>
-        <Text style={[globalStyles.textSmall, globalStyles.marginBottom]}>
-          총 {favorites?.length || 0}개 종목
-        </Text>
-
-        {favorites.length === 0 ? (
-          <Card style={globalStyles.centerContent}>
-            <Text style={[globalStyles.text, globalStyles.textCenter]}>
-              즐겨찾기한 종목이 없습니다.
-            </Text>
+          <TouchableOpacity
+            onPress={() => setSelectedTab('watchlist')}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              borderBottomWidth: 2,
+              borderBottomColor:
+                selectedTab === 'watchlist' ? '#1B3A57' : 'transparent',
+            }}
+          >
             <Text
-              style={[
-                globalStyles.textSmall,
-                globalStyles.textCenter,
-                globalStyles.marginTop,
-              ]}
+              style={{
+                textAlign: 'center',
+                fontSize: 16,
+                fontWeight: selectedTab === 'watchlist' ? '600' : '400',
+                color: selectedTab === 'watchlist' ? '#1B3A57' : '#8E8E93',
+              }}
             >
-              검색 화면에서 종목을 추가해보세요.
+              관심종목
             </Text>
-          </Card>
-        ) : (
-          <FlatList
-            data={favorites || []}
-            keyExtractor={item => item.id}
-            renderItem={renderFavoriteItem}
-            refreshControl={
-              <RefreshControl refreshing={loading} onRefresh={refetch} />
-            }
-            contentContainerStyle={{ paddingBottom: 20 }}
-            // 기본 스크롤 설정
-            scrollEnabled={true}
-            bounces={true}
-            showsVerticalScrollIndicator={true}
-          />
-        )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedTab('tab2')}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              borderBottomWidth: 2,
+              borderBottomColor:
+                selectedTab === 'tab2' ? '#1B3A57' : 'transparent',
+            }}
+          >
+            <Text
+              style={{
+                textAlign: 'center',
+                fontSize: 16,
+                fontWeight: selectedTab === 'tab2' ? '600' : '400',
+                color: selectedTab === 'tab2' ? '#1B3A57' : '#8E8E93',
+              }}
+            >
+              포트폴리오
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedTab('tab3')}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              borderBottomWidth: 2,
+              borderBottomColor:
+                selectedTab === 'tab3' ? '#1B3A57' : 'transparent',
+            }}
+          >
+            <Text
+              style={{
+                textAlign: 'center',
+                fontSize: 16,
+                fontWeight: selectedTab === 'tab3' ? '600' : '400',
+                color: selectedTab === 'tab3' ? '#1B3A57' : '#8E8E93',
+              }}
+            >
+              뉴스
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 탭 컨텐츠 */}
+        <View style={{ flex: 1, padding: 16 }}>
+          {selectedTab === 'watchlist' && (
+            <>
+              {renderMarketStatus()}
+
+              <Text style={[globalStyles.textSmall, globalStyles.marginBottom]}>
+                총 {favorites?.length || 0}개 종목
+              </Text>
+
+              {favorites.length === 0 ? (
+                <Card style={globalStyles.centerContent}>
+                  <Text style={[globalStyles.text, globalStyles.textCenter]}>
+                    관심 종목이 없습니다.
+                  </Text>
+                  <Text
+                    style={[
+                      globalStyles.textSmall,
+                      globalStyles.textCenter,
+                      globalStyles.marginTop,
+                    ]}
+                  >
+                    검색 화면에서 종목을 추가해보세요.
+                  </Text>
+                </Card>
+              ) : (
+                <FlatList
+                  data={favorites || []}
+                  keyExtractor={item => item.id}
+                  renderItem={renderFavoriteItem}
+                  refreshControl={
+                    <RefreshControl refreshing={loading} onRefresh={refetch} />
+                  }
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                  scrollEnabled={true}
+                  bounces={true}
+                  showsVerticalScrollIndicator={true}
+                />
+              )}
+            </>
+          )}
+
+          {selectedTab === 'tab2' && (
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#8E8E93', fontSize: 16 }}>
+                포트폴리오 기능 준비 중입니다.
+              </Text>
+            </View>
+          )}
+
+          {selectedTab === 'tab3' && (
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#8E8E93', fontSize: 16 }}>
+                뉴스 기능 준비 중입니다.
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
