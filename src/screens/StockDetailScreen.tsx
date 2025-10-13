@@ -65,7 +65,7 @@ const StockDetailScreen: React.FC = () => {
     price,
     loading: priceLoading,
     error: priceError,
-  } = useStockPrice(symbol);
+  } = useStockPrice(symbol, isReady);
   const {
     candles,
     loading: candlesLoading,

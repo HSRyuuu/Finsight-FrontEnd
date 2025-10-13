@@ -82,7 +82,7 @@ export const useCandleStatus = (symbol: string) => {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
     let attemptCount = 0;
-    const delays = [300, 600, 900]; // 300ms, 600ms, 900ms
+    const delays = [500, 700, 1000]; // ms
 
     const pollStatus = async () => {
       const result = await checkStatus();
@@ -164,13 +164,13 @@ export const useStock = (symbol: string, shouldFetch: boolean = true) => {
 };
 
 // 종목 가격 정보 훅
-export const useStockPrice = (symbol: string) => {
+export const useStockPrice = (symbol: string, shouldFetch: boolean = true) => {
   const [price, setPrice] = useState<StockPrice | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPrice = async () => {
-    if (!symbol) return;
+    if (!symbol || !shouldFetch) return;
 
     try {
       setLoading(true);
@@ -189,8 +189,10 @@ export const useStockPrice = (symbol: string) => {
   };
 
   useEffect(() => {
-    fetchPrice();
-  }, [symbol]);
+    if (shouldFetch) {
+      fetchPrice();
+    }
+  }, [symbol, shouldFetch]);
 
   return {
     price,
