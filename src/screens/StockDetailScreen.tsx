@@ -75,7 +75,10 @@ const StockDetailScreen: React.FC = () => {
   const { addFavorite, removeFavorite } = useFavorites();
 
   // 환율 정보 조회
-  const { rate: exchangeRate } = useExchangeRate('USD', 'KRW');
+  const { rate: exchangeRate, loading: exchangeRateLoading } = useExchangeRate(
+    'USD',
+    'KRW'
+  );
 
   // 차트 데이터 - 달러와 원화 버전을 미리 계산
   const [candlesUSD, setCandlesUSD] = useState<CandleData[]>([]);
@@ -757,11 +760,6 @@ const StockDetailScreen: React.FC = () => {
     );
   };
 
-  // 캔들 상태 확인 중
-  if (statusLoading) {
-    return <LoadingSpinner message="데이터 준비 상태를 확인하는 중..." />;
-  }
-
   // 캔들 상태 확인 오류
   if (statusError) {
     return (
@@ -771,8 +769,13 @@ const StockDetailScreen: React.FC = () => {
     );
   }
 
-  // 캔들 데이터가 아직 준비되지 않음
-  if (candleStatus && !candleStatus.ready) {
+  // 캔들 상태가 아직 없음 (첫 로딩 중) - 아무것도 표시하지 않음 (깜박임 방지)
+  if (!candleStatus) {
+    return null;
+  }
+
+  // 캔들 데이터가 준비되지 않음 - 대기 화면 표시
+  if (!candleStatus.ready) {
     return (
       <View style={globalStyles.centerContent}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -798,6 +801,11 @@ const StockDetailScreen: React.FC = () => {
         <ErrorMessage message={stockError} />
       </View>
     );
+  }
+
+  // 필수 데이터 로딩 중 (가격, 환율, 차트)
+  if (priceLoading || exchangeRateLoading || candlesLoading) {
+    return <LoadingSpinner message="데이터를 불러오는 중..." />;
   }
 
   return (

@@ -58,11 +58,13 @@ export const useCandleStatus = (symbol: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const checkStatus = async () => {
+  const checkStatus = async (shouldSetLoading: boolean = true) => {
     if (!symbol) return;
 
     try {
-      setLoading(true);
+      if (shouldSetLoading) {
+        setLoading(true);
+      }
       setError(null);
       const data = await stockService.getCandleStatus(symbol);
       setStatus(data);
@@ -75,7 +77,9 @@ export const useCandleStatus = (symbol: string) => {
       );
       return null;
     } finally {
-      setLoading(false);
+      if (shouldSetLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -85,11 +89,19 @@ export const useCandleStatus = (symbol: string) => {
     const delays = [500, 700, 1000]; // ms
 
     const pollStatus = async () => {
-      const result = await checkStatus();
+      // 첫 번째 조회는 loading 없이 실행
+      const isFirstAttempt = attemptCount === 0;
+      const result = await checkStatus(false);
 
       // ready가 true이면 성공
       if (result && result.ready) {
+        setLoading(false); // 혹시 모를 loading 상태 정리
         return;
+      }
+
+      // 첫 번째 조회가 false였다면 이제 loading 시작
+      if (isFirstAttempt) {
+        setLoading(true);
       }
 
       // 실패했지만 아직 시도 횟수가 남았으면 재시도
