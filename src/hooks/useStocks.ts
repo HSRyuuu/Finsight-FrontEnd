@@ -9,6 +9,7 @@ import {
   CandleStatus,
   ExchangeRate,
   BollingerBandsData,
+  RsiData,
 } from '../types';
 
 // 종목 검색 훅
@@ -377,5 +378,49 @@ export const useBollingerBands = (
     loading,
     error,
     refetch: fetchBollingerBands,
+  };
+};
+
+// RSI 조회 훅
+export const useRsi = (symbol: string, shouldFetch: boolean = true) => {
+  const [data, setData] = useState<RsiData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchRsi = async () => {
+    if (!symbol || !shouldFetch) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await stockService.getRsi(symbol);
+      setData(result);
+
+      // ready가 false인 경우 1초 후 재조회
+      if (!result.ready) {
+        setTimeout(() => {
+          fetchRsi();
+        }, 1000);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'RSI를 불러오는데 실패했습니다.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (shouldFetch) {
+      fetchRsi();
+    }
+  }, [symbol, shouldFetch]);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchRsi,
   };
 };

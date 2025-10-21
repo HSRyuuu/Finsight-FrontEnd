@@ -18,6 +18,7 @@ import {
   useFavorites,
   useExchangeRate,
   useBollingerBands,
+  useRsi,
 } from '../hooks';
 import { globalStyles, componentStyles } from '../styles';
 import {
@@ -81,13 +82,23 @@ const StockDetailScreen: React.FC = () => {
     'KRW'
   );
 
-  // 볼린저 밴드 조회 - 차트 데이터가 로드된 후에만 조회
-  const shouldFetchBollinger = isReady && !candlesLoading && candles.length > 0;
+  // 기술적 지표 조회 - 차트 데이터가 로드된 후에만 조회
+  const shouldFetchIndicators =
+    isReady && !candlesLoading && candles.length > 0;
+
+  // 볼린저 밴드 조회
   const {
     data: bollingerData,
     loading: bollingerLoading,
     error: bollingerError,
-  } = useBollingerBands(symbol, shouldFetchBollinger);
+  } = useBollingerBands(symbol, shouldFetchIndicators);
+
+  // RSI 조회
+  const {
+    data: rsiData,
+    loading: rsiLoading,
+    error: rsiError,
+  } = useRsi(symbol, shouldFetchIndicators);
 
   // 차트 데이터 - 달러와 원화 버전을 미리 계산
   const [candlesUSD, setCandlesUSD] = useState<CandleData[]>([]);
@@ -473,17 +484,127 @@ const StockDetailScreen: React.FC = () => {
 
   // 기술적 지표 렌더링
   const renderTechnicalIndicators = () => {
+    // 신호 타입 매핑
+    type SignalCategory =
+      | 'strong_buy'
+      | 'buy'
+      | 'bullish'
+      | 'neutral'
+      | 'bearish'
+      | 'sell'
+      | 'strong_sell';
+
+    const signalMap: Record<string, { signal: SignalCategory; text: string }> =
+      {
+        STRONG_BUY: { signal: 'strong_buy', text: '강한 매수' },
+        BUY: { signal: 'buy', text: '매수' },
+        BULLISH: { signal: 'bullish', text: '강세' },
+        NEUTRAL: { signal: 'neutral', text: '중립' },
+        BEARISH: { signal: 'bearish', text: '약세' },
+        SELL: { signal: 'sell', text: '매도' },
+        STRONG_SELL: { signal: 'strong_sell', text: '강한 매도' },
+      };
+
+    // RSI 지표 생성
+    const getRsiIndicator = () => {
+      const baseDescription = `RSI(Relative Strength Index)는 주가의 상승 압력과 하락 압력 간의 상대적인 강도를 나타내는 지표입니다.
+
+📊 RSI 구간별 의미:
+• 0~30 (과매도): 매수 신호 - 너무 많이 떨어져 반등 가능성 높음
+• 30~50 (약세): 하락 추세 유지 - 관망 또는 약한 매도 고려
+• 50~70 (강세): 상승 추세 유지 - 관망 또는 약한 매수 고려
+• 70~100 (과매수): 매도 신호 - 너무 급등하여 조정 가능성 높음`;
+
+      if (rsiLoading || !rsiData?.ready) {
+        return {
+          name: 'RSI',
+          fullName: 'Relative Strength Index',
+          value: null,
+          signal: 'neutral' as SignalCategory,
+          signalText: '계산 중',
+          description: baseDescription,
+          explanation: '데이터를 준비하고 있습니다. 잠시만 기다려주세요.',
+          details: null,
+          isLoading: true,
+        };
+      }
+
+      if (rsiError || !rsiData) {
+        return {
+          name: 'RSI',
+          fullName: 'Relative Strength Index',
+          value: null,
+          signal: 'neutral' as SignalCategory,
+          signalText: '오류',
+          description: baseDescription,
+          explanation: '데이터를 불러오는데 실패했습니다.',
+          details: null,
+          isLoading: false,
+        };
+      }
+
+      // 실제 데이터로 지표 생성
+      const { signal, text } =
+        signalMap[rsiData.signalType] || signalMap.NEUTRAL;
+
+      const getExplanation = () => {
+        const rsi = rsiData.rsi;
+        const type = rsiData.signalType;
+
+        if (type === 'BUY' || rsi < 30) {
+          return `RSI ${rsi.toFixed(1)} - 과매도 구간입니다. 너무 많이 하락하여 반등 가능성이 높습니다.`;
+        } else if (type === 'BEARISH' || (rsi >= 30 && rsi < 50)) {
+          return `RSI ${rsi.toFixed(1)} - 약세 구간입니다. 하락 추세가 유지되고 있어 관망이 필요합니다.`;
+        } else if (type === 'BULLISH' || (rsi >= 50 && rsi < 70)) {
+          return `RSI ${rsi.toFixed(1)} - 강세 구간입니다. 상승 추세가 유지되고 있습니다.`;
+        } else if (type === 'SELL' || rsi >= 70) {
+          return `RSI ${rsi.toFixed(1)} - 과매수 구간입니다. 너무 급등하여 단기 조정 가능성이 있습니다.`;
+        }
+        return `RSI ${rsi.toFixed(1)} - 중립 구간입니다.`;
+      };
+
+      const getDescription = () => {
+        return `RSI(Relative Strength Index)는 주가의 상승 압력과 하락 압력 간의 상대적인 강도를 나타내는 지표입니다.
+
+📊 RSI 구간별 의미:
+• 0~30 (과매도): 매수 신호 - 너무 많이 떨어져 반등 가능성 높음
+• 30~50 (약세): 하락 추세 유지 - 관망 또는 약한 매도 고려
+• 50~70 (강세): 상승 추세 유지 - 관망 또는 약한 매수 고려
+• 70~100 (과매수): 매도 신호 - 너무 급등하여 조정 가능성 높음
+
+현재 RSI는 ${rsiData.rsi.toFixed(1)}입니다.`;
+      };
+
+      return {
+        name: 'RSI',
+        fullName: 'Relative Strength Index',
+        value: rsiData.rsi,
+        signal,
+        signalText: text,
+        description: getDescription(),
+        explanation: getExplanation(),
+        details: null,
+        isLoading: false,
+      };
+    };
+
     // 볼린저 밴드 지표 생성
     const getBollingerIndicator = () => {
+      const baseDescription = `볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 이동평균선을 중심으로 상단과 하단 밴드를 그려 가격의 위치를 파악합니다.
+
+📊 위치별 신호:
+• 하단 밴드 근처 (0~30%): 매수 신호 - 과매도 구간, 반등 가능성
+• 중심 영역 (30~70%): 중립 - 안정적인 흐름, 추세 관찰
+• 상단 밴드 근처 (70~100%): 매도 신호 - 과매수 구간, 조정 가능성`;
+
       if (bollingerLoading || !bollingerData?.ready) {
         return {
           name: '볼린저 밴드',
           fullName: 'Bollinger Bands',
           value: null,
-          signal: 'neutral' as 'buy' | 'sell' | 'neutral',
+          signal: 'neutral' as SignalCategory,
           signalText: '계산 중',
-          description:
-            '볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 가격이 하단 밴드에 가까우면 매수 신호, 상단 밴드에 가까우면 매도 신호입니다.',
+          description: baseDescription,
           explanation: '데이터를 준비하고 있습니다. 잠시만 기다려주세요.',
           details: null,
           isLoading: true,
@@ -495,10 +616,9 @@ const StockDetailScreen: React.FC = () => {
           name: '볼린저 밴드',
           fullName: 'Bollinger Bands',
           value: null,
-          signal: 'neutral' as 'buy' | 'sell' | 'neutral',
+          signal: 'neutral' as SignalCategory,
           signalText: '오류',
-          description:
-            '볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 가격이 하단 밴드에 가까우면 매수 신호, 상단 밴드에 가까우면 매도 신호입니다.',
+          description: baseDescription,
           explanation: '데이터를 불러오는데 실패했습니다.',
           details: null,
           isLoading: false,
@@ -506,22 +626,42 @@ const StockDetailScreen: React.FC = () => {
       }
 
       // 실제 데이터로 지표 생성
-      const signalMap = {
-        BUY: { signal: 'buy' as const, text: '매수' },
-        SELL: { signal: 'sell' as const, text: '매도' },
-        NEUTRAL: { signal: 'neutral' as const, text: '중립' },
-      };
-
       const { signal, text } =
         signalMap[bollingerData.signalType] || signalMap.NEUTRAL;
 
       const getExplanation = () => {
-        if (bollingerData.signalType === 'BUY') {
-          return '현재 가격이 하단 밴드 근처에 위치하고 있어 반등 가능성이 있습니다.';
-        } else if (bollingerData.signalType === 'SELL') {
-          return '현재 가격이 상단 밴드 근처에 위치하고 있어 조정 가능성이 있습니다.';
+        const type = bollingerData.signalType;
+        const current = bollingerData.currentPrice;
+        const upper = bollingerData.upper;
+        const lower = bollingerData.lower;
+
+        // 볼린저 밴드 내 위치 계산 (0~100%)
+        const position = ((current - lower) / (upper - lower)) * 100;
+
+        if (type === 'BUY') {
+          return `가격이 하단 밴드 근처(${position.toFixed(0)}%)에 위치합니다. 과매도 구간으로 반등 가능성이 높습니다.`;
+        } else if (type === 'SELL') {
+          return `가격이 상단 밴드 근처(${position.toFixed(0)}%)에 위치합니다. 과매수 구간으로 조정 가능성이 있습니다.`;
+        } else if (type === 'NEUTRAL') {
+          return `가격이 밴드 중심부(${position.toFixed(0)}%)에서 움직입니다. 안정적인 흐름을 유지하고 있습니다.`;
         }
-        return '현재 가격이 중간 밴드 근처에서 움직이고 있습니다.';
+        return '현재 가격이 볼린저 밴드 내에서 움직이고 있습니다.';
+      };
+
+      const getDescription = () => {
+        const current = bollingerData.currentPrice;
+        const upper = bollingerData.upper;
+        const lower = bollingerData.lower;
+        const position = ((current - lower) / (upper - lower)) * 100;
+
+        return `볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 이동평균선을 중심으로 상단과 하단 밴드를 그려 가격의 위치를 파악합니다.
+
+📊 위치별 신호:
+• 하단 밴드 근처 (0~30%): 매수 신호 - 과매도 구간, 반등 가능성
+• 중심 영역 (30~70%): 중립 - 안정적인 흐름, 추세 관찰
+• 상단 밴드 근처 (70~100%): 매도 신호 - 과매수 구간, 조정 가능성
+
+현재 가격은 밴드 내 ${position.toFixed(0)}% 위치에 있습니다.`;
       };
 
       return {
@@ -530,8 +670,7 @@ const StockDetailScreen: React.FC = () => {
         value: null,
         signal,
         signalText: text,
-        description:
-          '볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 가격이 하단 밴드에 가까우면 매수 신호, 상단 밴드에 가까우면 매도 신호입니다.',
+        description: getDescription(),
         explanation: getExplanation(),
         details: {
           upper: bollingerData.upper,
@@ -543,32 +682,27 @@ const StockDetailScreen: React.FC = () => {
       };
     };
 
-    // 더미 데이터
-    const indicators = [
-      {
-        name: 'RSI',
-        fullName: 'Relative Strength Index',
-        value: 68.5,
-        signal: 'neutral' as 'buy' | 'sell' | 'neutral',
-        signalText: '중립',
-        description:
-          'RSI는 70 이상이면 과매수, 30 이하면 과매도 상태를 나타냅니다.',
-        explanation:
-          '현재 RSI가 68.5로 과매수 구간에 근접하고 있습니다. 단기 조정 가능성을 주의해야 합니다.',
-        details: null,
-        isLoading: false,
-      },
-      getBollingerIndicator(),
-    ];
+    // 지표 리스트
+    const indicators = [getRsiIndicator(), getBollingerIndicator()];
 
-    const getSignalColor = (signal: 'buy' | 'sell' | 'neutral') => {
+    const getSignalColor = (signal: SignalCategory) => {
       switch (signal) {
+        case 'strong_buy':
+          return '#FF0000'; // 진한 빨간색 (강한 매수)
         case 'buy':
-          return '#FF3B30'; // 빨간색 (한국 스타일 상승)
-        case 'sell':
-          return '#007AFF'; // 파란색 (한국 스타일 하락)
+          return '#FF3B30'; // 빨간색 (매수)
+        case 'bullish':
+          return '#FF6B6B'; // 연한 빨간색 (강세)
         case 'neutral':
           return '#8E8E93'; // 회색 (중립)
+        case 'bearish':
+          return '#5A9FD4'; // 연한 파란색 (약세)
+        case 'sell':
+          return '#007AFF'; // 파란색 (매도)
+        case 'strong_sell':
+          return '#0056B3'; // 진한 파란색 (강한 매도)
+        default:
+          return '#8E8E93'; // 기본 회색
       }
     };
 

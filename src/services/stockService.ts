@@ -9,6 +9,7 @@ import {
   CandleStatus,
   ExchangeRate,
   BollingerBandsData,
+  RsiData,
 } from '../types';
 
 export class StockService {
@@ -177,6 +178,16 @@ export class StockService {
       );
     } catch (error) {
       console.error(`종목 ${symbol} 볼린저 밴드 조회 실패:`, error);
+      throw error;
+    }
+  }
+
+  // RSI 조회
+  async getRsi(symbol: string): Promise<RsiData> {
+    try {
+      return await apiService.get<RsiData>(`/api/indicators/rsi/${symbol}`);
+    } catch (error) {
+      console.error(`종목 ${symbol} RSI 조회 실패:`, error);
       throw error;
     }
   }

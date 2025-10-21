@@ -113,14 +113,34 @@ export interface ExchangeRate {
   lastUpdated: string;
 }
 
+// 기술적 지표 신호 타입
+export type IndicatorSignalType =
+  | 'BEARISH'
+  | 'BULLISH'
+  | 'STRONG_BUY'
+  | 'BUY'
+  | 'NEUTRAL'
+  | 'SELL'
+  | 'STRONG_SELL';
+
 // 볼린저 밴드 정보
 export interface BollingerBandsData {
   ready: boolean;
-  signalType: 'BUY' | 'SELL' | 'NEUTRAL';
+  signalType: IndicatorSignalType;
   currentPrice: number;
   upper: number;
   lower: number;
   middle: number;
+}
+
+// RSI 정보
+export interface RsiData {
+  ready: boolean;
+  signalType: IndicatorSignalType;
+  rsi: number;
+  avgGain: number;
+  avgLoss: number;
+  period: number;
 }
 
 // 네비게이션 타입

@@ -8,5 +8,6 @@ export {
   useMarketStatus,
   useExchangeRate,
   useBollingerBands,
+  useRsi,
 } from './useStocks';
 export { useFavorites, useIsFavorite } from './useFavorites';
