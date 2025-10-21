@@ -69,35 +69,56 @@ export const calculateBollingerBands = (
   return { upper, middle, lower };
 };
 
-// RSI 계산 (추후 확장용)
+// RSI 계산 (EMA 방식)
 export const calculateRSI = (
   data: CandleData[],
   period: number = 14
 ): { time: number; value: number }[] => {
   const result: { time: number; value: number }[] = [];
 
-  if (data.length < period + 1) return result;
+  // 시간 순으로 정렬 (오름차순)
+  const sortedData = [...data].sort((a, b) => a.time - b.time);
 
-  for (let i = period; i < data.length; i++) {
-    let gains = 0;
-    let losses = 0;
+  if (sortedData.length <= period) return result;
 
-    for (let j = i - period + 1; j <= i; j++) {
-      const change = data[j].close - data[j - 1].close;
-      if (change > 0) {
-        gains += change;
-      } else {
-        losses += Math.abs(change);
-      }
-    }
+  // 종가 리스트
+  const closes = sortedData.map(candle => candle.close);
 
-    const avgGain = gains / period;
-    const avgLoss = losses / period;
-    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+  // 가격 변화 계산
+  const changes: number[] = [];
+  for (let i = 1; i < closes.length; i++) {
+    changes.push(closes[i] - closes[i - 1]);
+  }
+
+  // Gain과 Loss 리스트
+  const gains = changes.map(change => Math.max(change, 0));
+  const losses = changes.map(change => Math.max(-change, 0));
+
+  // 초기 평균 계산 (단순 평균)
+  let avgGain = 0;
+  let avgLoss = 0;
+  for (let i = 0; i < period; i++) {
+    avgGain += gains[i];
+    avgLoss += losses[i];
+  }
+  avgGain /= period;
+  avgLoss /= period;
+
+  // period번째 이후부터 EMA 방식으로 갱신
+  for (let i = period; i < closes.length; i++) {
+    const gain = gains[i - 1];
+    const loss = losses[i - 1];
+
+    // EMA 방식 갱신
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+
+    // RS와 RSI 계산
+    const rs = avgLoss === 0 ? Infinity : avgGain / avgLoss;
     const rsi = 100 - 100 / (1 + rs);
 
     result.push({
-      time: data[i].time / 1000,
+      time: Math.floor(sortedData[i].time / 1000), // milliseconds to seconds (정수)
       value: rsi,
     });
   }

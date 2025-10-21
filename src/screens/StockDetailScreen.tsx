@@ -47,6 +47,7 @@ const StockDetailScreen: React.FC = () => {
     description: string;
   } | null>(null);
   const [showBollingerBands, setShowBollingerBands] = useState(true);
+  const [showRSI, setShowRSI] = useState(false);
 
   // 1단계: 캔들 상태 확인
   const {
@@ -466,15 +467,17 @@ const StockDetailScreen: React.FC = () => {
     // key prop을 사용하여 통화가 변경되면 차트를 완전히 다시 렌더링
     return (
       <View style={{ marginBottom: 16, width: '100%' }}>
-        {/* 볼린저 밴드 토글 버튼 */}
+        {/* 지표 토글 버튼들 */}
         <View
           style={{
             flexDirection: 'row',
             justifyContent: 'flex-end',
             paddingHorizontal: 16,
             marginBottom: 8,
+            gap: 8,
           }}
         >
+          {/* 볼린저 밴드 토글 */}
           <TouchableOpacity
             onPress={() => setShowBollingerBands(!showBollingerBands)}
             style={{
@@ -511,15 +514,54 @@ const StockDetailScreen: React.FC = () => {
               볼린저 밴드
             </Text>
           </TouchableOpacity>
+
+          {/* RSI 토글 */}
+          <TouchableOpacity
+            onPress={() => setShowRSI(!showRSI)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: showRSI ? '#9747FF' : '#C6C6C8',
+              backgroundColor: showRSI
+                ? 'rgba(151, 71, 255, 0.1)'
+                : 'transparent',
+            }}
+          >
+            <View
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: 6,
+                borderWidth: 2,
+                borderColor: '#9747FF',
+                backgroundColor: showRSI ? '#9747FF' : 'transparent',
+                marginRight: 6,
+              }}
+            />
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: showRSI ? '#9747FF' : '#8E8E93',
+              }}
+            >
+              RSI
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <CandlestickChart
-          key={`chart-${displayCurrency}-${selectedPeriod}-${showBollingerBands}`}
+          key={`chart-${displayCurrency}-${selectedPeriod}-${showBollingerBands}-${showRSI}`}
           data={finalChartData}
           height={300}
           timeframe={selectedPeriod === 'DAY1' ? 'day' : 'hour'}
           currency={displayCurrency}
           showBollingerBands={showBollingerBands}
+          showRSI={showRSI}
         />
       </View>
     );
@@ -601,15 +643,15 @@ const StockDetailScreen: React.FC = () => {
         const type = rsiData.signalType;
 
         if (type === 'BUY' || rsi < 30) {
-          return `RSI ${rsi.toFixed(1)} - 과매도 구간입니다. 너무 많이 하락하여 반등 가능성이 높습니다.`;
+          return `RSI ${rsi.toFixed(2)} - 과매도 구간입니다. 너무 많이 하락하여 반등 가능성이 높습니다.`;
         } else if (type === 'BEARISH' || (rsi >= 30 && rsi < 50)) {
-          return `RSI ${rsi.toFixed(1)} - 약세 구간입니다. 하락 추세가 유지되고 있어 관망이 필요합니다.`;
+          return `RSI ${rsi.toFixed(2)} - 약세 구간입니다. 하락 추세가 유지되고 있어 관망이 필요합니다.`;
         } else if (type === 'BULLISH' || (rsi >= 50 && rsi < 70)) {
-          return `RSI ${rsi.toFixed(1)} - 강세 구간입니다. 상승 추세가 유지되고 있습니다.`;
+          return `RSI ${rsi.toFixed(2)} - 강세 구간입니다. 상승 추세가 유지되고 있습니다.`;
         } else if (type === 'SELL' || rsi >= 70) {
-          return `RSI ${rsi.toFixed(1)} - 과매수 구간입니다. 너무 급등하여 단기 조정 가능성이 있습니다.`;
+          return `RSI ${rsi.toFixed(2)} - 과매수 구간입니다. 너무 급등하여 단기 조정 가능성이 있습니다.`;
         }
-        return `RSI ${rsi.toFixed(1)} - 중립 구간입니다.`;
+        return `RSI ${rsi.toFixed(2)} - 중립 구간입니다.`;
       };
 
       const getDescription = () => {
@@ -621,7 +663,7 @@ const StockDetailScreen: React.FC = () => {
 • 50~70 (강세): 상승 추세 유지 - 관망 또는 약한 매수 고려
 • 70~100 (과매수): 매도 신호 - 너무 급등하여 조정 가능성 높음
 
-현재 RSI는 ${rsiData.rsi.toFixed(1)}입니다.`;
+현재 RSI는 ${rsiData.rsi.toFixed(2)}입니다.`;
       };
 
       return {
@@ -732,7 +774,7 @@ const StockDetailScreen: React.FC = () => {
     };
 
     // 지표 리스트
-    const indicators = [getRsiIndicator(), getBollingerIndicator()];
+    const indicators = [getBollingerIndicator(), getRsiIndicator()];
 
     const getSignalColor = (signal: SignalCategory) => {
       switch (signal) {
@@ -876,7 +918,7 @@ const StockDetailScreen: React.FC = () => {
                         <Text
                           style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
                         >
-                          {indicator.value.toFixed(1)}
+                          {indicator.value.toFixed(2)}
                         </Text>
                       )}
                       {indicator.details && (

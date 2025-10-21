@@ -4,6 +4,7 @@ import { CandleData } from '../types';
 import {
   calculateMovingAverage,
   calculateBollingerBands,
+  calculateRSI,
 } from '../utils/chartIndicators';
 import {
   createChart,
@@ -23,12 +24,14 @@ interface CandlestickChartProps {
   showMA60?: boolean;
   showMA200?: boolean;
   showBollingerBands?: boolean;
+  showRSI?: boolean;
   ma5Period?: number;
   ma20Period?: number;
   ma60Period?: number;
   ma200Period?: number;
   bbPeriod?: number;
   bbStdDev?: number;
+  rsiPeriod?: number;
 }
 
 export const CandlestickChart: React.FC<CandlestickChartProps> = ({
@@ -41,12 +44,14 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   showMA60 = true,
   showMA200 = true,
   showBollingerBands = true,
+  showRSI = false,
   ma5Period = 5,
   ma20Period = 20,
   ma60Period = 60,
   ma200Period = 200,
   bbPeriod = 20,
   bbStdDev = 2,
+  rsiPeriod = 14,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
@@ -242,7 +247,22 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       });
     }
 
-    // 볼린저 밴드 추가 (20일 이평선 = 볼린저 밴드 중간선)
+    // 20일 이동평균선 추가 (기본으로 항상 표시)
+    if (data.length >= 20) {
+      const ma20Data = calculateMovingAverage(data, 20);
+
+      if (ma20Data.length > 0) {
+        const ma20Series = chart.addSeries(LineSeries, {
+          color: '#FF3B30', // 빨간색 - 20일 이평선
+          lineWidth: 1,
+          lastValueVisible: false, // 오른쪽 가격 라벨 숨김
+          priceLineVisible: false, // 가격선 숨김
+        });
+        ma20Series.setData(ma20Data as any);
+      }
+    }
+
+    // 볼린저 밴드 추가
     if (showBollingerBands && data.length >= bbPeriod) {
       const bollingerBands = calculateBollingerBands(data, bbPeriod, bbStdDev);
 
@@ -250,25 +270,16 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         // 상단 밴드
         const upperBandSeries = chart.addSeries(LineSeries, {
           color: '#FF9500', // 주황색 - 상단 밴드
-          lineWidth: 1,
+          lineWidth: 2,
           lastValueVisible: false, // 오른쪽 가격 라벨 숨김
           priceLineVisible: false, // 가격선 숨김
         });
         upperBandSeries.setData(bollingerBands.upper as any);
 
-        // 중간선 (= 20일 이동평균선)
-        const middleBandSeries = chart.addSeries(LineSeries, {
-          color: '#FF3B30', // 빨간색 - 볼린저 밴드 중간선 겸 MA20
-          lineWidth: 1,
-          lastValueVisible: false, // 오른쪽 가격 라벨 숨김
-          priceLineVisible: false, // 가격선 숨김
-        });
-        middleBandSeries.setData(bollingerBands.middle as any);
-
         // 하단 밴드
         const lowerBandSeries = chart.addSeries(LineSeries, {
           color: '#FF9500', // 주황색 - 하단 밴드
-          lineWidth: 1,
+          lineWidth: 2,
           lastValueVisible: false, // 오른쪽 가격 라벨 숨김
           priceLineVisible: false, // 가격선 숨김
         });
@@ -330,13 +341,45 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       }
     };
 
+    // RSI를 메인 차트에 오버레이로 추가
+    if (showRSI && data.length >= rsiPeriod + 1) {
+      const rsiData = calculateRSI(data, rsiPeriod);
+
+      if (rsiData.length > 0) {
+        // RSI 라인 시리즈 (별도의 Y축 사용)
+        const rsiSeries = chart.addSeries(LineSeries, {
+          color: '#9747FF',
+          lineWidth: 2,
+          lastValueVisible: true,
+          priceLineVisible: false,
+          priceScaleId: 'rsi', // 별도의 가격 스케일 ID
+          priceFormat: {
+            type: 'custom',
+            formatter: (price: number) => price.toFixed(2),
+          },
+        });
+
+        rsiSeries.setData(rsiData as any);
+
+        // RSI용 오른쪽 Y축 설정
+        chart.priceScale('rsi').applyOptions({
+          scaleMargins: {
+            top: 0.8, // 상단 80% 비워두기 (메인 차트 공간)
+            bottom: 0, // 하단 20%에 RSI 표시
+          },
+          borderColor: '#9747FF',
+          visible: true,
+        });
+      }
+    }
+
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [data, height, timeframe, currency]);
+  }, [data, height, timeframe, currency, showRSI, showBollingerBands]);
 
   if (Platform.OS !== 'web') {
     // 모바일에서는 WebView 사용 (추후 구현)
@@ -355,49 +398,49 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   }
 
   return (
-    <View style={{ width: '100%', height, position: 'relative' }}>
-      <div
-        ref={chartContainerRef as any}
-        style={{ width: '100%', height: '100%' }}
-      />
+    <View style={{ width: '100%', position: 'relative' }}>
+      {/* 메인 차트 */}
+      <div ref={chartContainerRef as any} style={{ width: '100%', height }} />
       {/* 차트 범례 */}
       <View style={styles.legendContainer}>
-        {showBollingerBands && (
-          <>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendLine, { backgroundColor: '#FF3B30' }]}
-              />
-
-              <Text style={styles.legendText}>BB중단(20)</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendLine, { backgroundColor: '#FF9500' }]}
-              />
-              <Text style={styles.legendText}>BB상/하단</Text>
-            </View>
-          </>
-        )}
+        {/* 5일 이동평균선 */}
         {showMA5 && (
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: '#5856D6' }]} />
-            {/* 5일 이동평균선 */}
-            <Text style={styles.legendText}>5</Text>
+            <Text style={styles.legendText}>5일</Text>
           </View>
         )}
+        {/* 20일 이동평균선 (항상 표시) */}
+        <View style={styles.legendItem}>
+          <View style={[styles.legendLine, { backgroundColor: '#FF3B30' }]} />
+          <Text style={styles.legendText}>20일</Text>
+        </View>
+        {/* 60일 이동평균선 */}
         {showMA60 && (
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: '#34C759' }]} />
-            {/* 60일 이동평균선 */}
-            <Text style={styles.legendText}>60</Text>
+            <Text style={styles.legendText}>60일</Text>
           </View>
         )}
+        {/* 200일 이동평균선 */}
         {showMA200 && (
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: '#003366' }]} />
-            {/* 200일 이동평균선 */}
-            <Text style={styles.legendText}>200</Text>
+            <Text style={styles.legendText}>200일</Text>
+          </View>
+        )}
+        {/* 볼린저 밴드 */}
+        {showBollingerBands && (
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: '#FF9500' }]} />
+            <Text style={styles.legendText}>볼린저밴드</Text>
+          </View>
+        )}
+        {/* RSI */}
+        {showRSI && (
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: '#9747FF' }]} />
+            <Text style={styles.legendText}>RSI</Text>
           </View>
         )}
       </View>
