@@ -8,6 +8,7 @@ import {
   FavoriteStock,
   CandleStatus,
   ExchangeRate,
+  BollingerBandsData,
 } from '../types';
 
 export class StockService {
@@ -164,6 +165,18 @@ export class StockService {
       );
     } catch (error) {
       console.error(`환율 ${base}/${quote} 조회 실패:`, error);
+      throw error;
+    }
+  }
+
+  // 볼린저 밴드 조회
+  async getBollingerBands(symbol: string): Promise<BollingerBandsData> {
+    try {
+      return await apiService.get<BollingerBandsData>(
+        `/api/indicators/bollinger-bands/${symbol}`
+      );
+    } catch (error) {
+      console.error(`종목 ${symbol} 볼린저 밴드 조회 실패:`, error);
       throw error;
     }
   }

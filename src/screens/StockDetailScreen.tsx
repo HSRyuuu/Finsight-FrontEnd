@@ -17,6 +17,7 @@ import {
   useIsFavorite,
   useFavorites,
   useExchangeRate,
+  useBollingerBands,
 } from '../hooks';
 import { globalStyles, componentStyles } from '../styles';
 import {
@@ -79,6 +80,14 @@ const StockDetailScreen: React.FC = () => {
     'USD',
     'KRW'
   );
+
+  // 볼린저 밴드 조회 - 차트 데이터가 로드된 후에만 조회
+  const shouldFetchBollinger = isReady && !candlesLoading && candles.length > 0;
+  const {
+    data: bollingerData,
+    loading: bollingerLoading,
+    error: bollingerError,
+  } = useBollingerBands(symbol, shouldFetchBollinger);
 
   // 차트 데이터 - 달러와 원화 버전을 미리 계산
   const [candlesUSD, setCandlesUSD] = useState<CandleData[]>([]);
@@ -219,11 +228,55 @@ const StockDetailScreen: React.FC = () => {
 
     return (
       <Card style={[globalStyles.marginBottom, { position: 'relative' }]}>
-        {/* 통화 스위치 - 오른쪽 위 */}
+        {/* 상단: 종목명 + 즐겨찾기 버튼 */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12,
+          }}
+        >
+          <View
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'baseline' }}
+          >
+            {/* 종목명 */}
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: '700',
+                color: '#000',
+                marginRight: 8,
+              }}
+            >
+              {name}
+            </Text>
+            {/* 심볼 */}
+            <Text
+              style={{
+                fontSize: 14,
+                color: '#8E8E93',
+              }}
+            >
+              {symbol}
+            </Text>
+          </View>
+
+          {/* 즐겨찾기 버튼 */}
+          <TouchableOpacity
+            onPress={handleFavoriteToggle}
+            style={{ padding: 8 }}
+            disabled={favoriteLoading}
+          >
+            <Text style={{ fontSize: 24 }}>{isFavorite ? '⭐' : '☆'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 통화 스위치 - 오른쪽 아래 */}
         <View
           style={{
             position: 'absolute',
-            top: 12,
+            bottom: 12,
             right: 12,
             zIndex: 1,
           }}
@@ -283,17 +336,6 @@ const StockDetailScreen: React.FC = () => {
 
         {/* 가격 정보 - 왼쪽 정렬 */}
         <View style={{ alignItems: 'flex-start' }}>
-          {/* 심볼 */}
-          <Text
-            style={{
-              fontSize: 16,
-              color: '#8E8E93',
-              marginBottom: 8,
-            }}
-          >
-            {symbol}
-          </Text>
-
           <View
             style={{
               flexDirection: 'row',
@@ -431,6 +473,76 @@ const StockDetailScreen: React.FC = () => {
 
   // 기술적 지표 렌더링
   const renderTechnicalIndicators = () => {
+    // 볼린저 밴드 지표 생성
+    const getBollingerIndicator = () => {
+      if (bollingerLoading || !bollingerData?.ready) {
+        return {
+          name: '볼린저 밴드',
+          fullName: 'Bollinger Bands',
+          value: null,
+          signal: 'neutral' as 'buy' | 'sell' | 'neutral',
+          signalText: '계산 중',
+          description:
+            '볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 가격이 하단 밴드에 가까우면 매수 신호, 상단 밴드에 가까우면 매도 신호입니다.',
+          explanation: '데이터를 준비하고 있습니다. 잠시만 기다려주세요.',
+          details: null,
+          isLoading: true,
+        };
+      }
+
+      if (bollingerError || !bollingerData) {
+        return {
+          name: '볼린저 밴드',
+          fullName: 'Bollinger Bands',
+          value: null,
+          signal: 'neutral' as 'buy' | 'sell' | 'neutral',
+          signalText: '오류',
+          description:
+            '볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 가격이 하단 밴드에 가까우면 매수 신호, 상단 밴드에 가까우면 매도 신호입니다.',
+          explanation: '데이터를 불러오는데 실패했습니다.',
+          details: null,
+          isLoading: false,
+        };
+      }
+
+      // 실제 데이터로 지표 생성
+      const signalMap = {
+        BUY: { signal: 'buy' as const, text: '매수' },
+        SELL: { signal: 'sell' as const, text: '매도' },
+        NEUTRAL: { signal: 'neutral' as const, text: '중립' },
+      };
+
+      const { signal, text } =
+        signalMap[bollingerData.signalType] || signalMap.NEUTRAL;
+
+      const getExplanation = () => {
+        if (bollingerData.signalType === 'BUY') {
+          return '현재 가격이 하단 밴드 근처에 위치하고 있어 반등 가능성이 있습니다.';
+        } else if (bollingerData.signalType === 'SELL') {
+          return '현재 가격이 상단 밴드 근처에 위치하고 있어 조정 가능성이 있습니다.';
+        }
+        return '현재 가격이 중간 밴드 근처에서 움직이고 있습니다.';
+      };
+
+      return {
+        name: '볼린저 밴드',
+        fullName: 'Bollinger Bands',
+        value: null,
+        signal,
+        signalText: text,
+        description:
+          '볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 가격이 하단 밴드에 가까우면 매수 신호, 상단 밴드에 가까우면 매도 신호입니다.',
+        explanation: getExplanation(),
+        details: {
+          upper: bollingerData.upper,
+          middle: bollingerData.middle,
+          lower: bollingerData.lower,
+          current: bollingerData.currentPrice,
+        },
+        isLoading: false,
+      };
+    };
+
     // 더미 데이터
     const indicators = [
       {
@@ -443,24 +555,10 @@ const StockDetailScreen: React.FC = () => {
           'RSI는 70 이상이면 과매수, 30 이하면 과매도 상태를 나타냅니다.',
         explanation:
           '현재 RSI가 68.5로 과매수 구간에 근접하고 있습니다. 단기 조정 가능성을 주의해야 합니다.',
+        details: null,
+        isLoading: false,
       },
-      {
-        name: '볼린저 밴드',
-        fullName: 'Bollinger Bands',
-        value: null,
-        signal: 'buy' as 'buy' | 'sell' | 'neutral',
-        signalText: '매수',
-        description:
-          '볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 가격이 하단 밴드에 가까우면 매수 신호, 상단 밴드에 가까우면 매도 신호입니다.',
-        explanation:
-          '현재 가격이 하단 밴드 근처에 위치하고 있어 반등 가능성이 있습니다.',
-        details: {
-          upper: 152.5,
-          middle: 148.3,
-          lower: 144.1,
-          current: 144.8,
-        },
-      },
+      getBollingerIndicator(),
     ];
 
     const getSignalColor = (signal: 'buy' | 'sell' | 'neutral') => {
@@ -478,101 +576,173 @@ const StockDetailScreen: React.FC = () => {
       <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
         {indicators.map((indicator, index) => (
           <Card key={index} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row' }}>
-              {/* 왼쪽: 지표명 + 신호 */}
-              <View style={{ flex: 1 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginBottom: 8,
-                  }}
-                >
-                  <Text style={{ fontSize: 16, fontWeight: '600' }}>
-                    {indicator.name}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      openIndicatorModal(indicator.name, indicator.description)
-                    }
-                    style={{
-                      marginLeft: 6,
-                      width: 16,
-                      height: 16,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: '#8E8E93',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text style={{ fontSize: 10, color: '#8E8E93' }}>?</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* 신호 및 수치 */}
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* 로딩 중일 때 */}
+            {indicator.isLoading ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
                   <View
                     style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 4,
-                      backgroundColor: getSignalColor(indicator.signal) + '20',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 8,
                     }}
                   >
-                    <Text
+                    <Text style={{ fontSize: 16, fontWeight: '600' }}>
+                      {indicator.name}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        openIndicatorModal(
+                          indicator.name,
+                          indicator.description
+                        )
+                      }
                       style={{
-                        fontSize: 12,
-                        fontWeight: '600',
-                        color: getSignalColor(indicator.signal),
+                        marginLeft: 6,
+                        width: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: '#8E8E93',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      {indicator.signalText}
-                    </Text>
+                      <Text style={{ fontSize: 10, color: '#8E8E93' }}>?</Text>
+                    </TouchableOpacity>
                   </View>
-                  {indicator.value !== null && (
-                    <Text
-                      style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
-                    >
-                      {indicator.value.toFixed(1)}
+                  <ActivityIndicator size="small" color="#007AFF" />
+                </View>
+                <View
+                  style={{
+                    flex: 1.2,
+                    marginLeft: 12,
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text
+                    style={{ fontSize: 13, color: '#8E8E93', lineHeight: 18 }}
+                  >
+                    {indicator.explanation}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row' }}>
+                {/* 왼쪽: 지표명 + 신호 */}
+                <View style={{ flex: 1 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, fontWeight: '600' }}>
+                      {indicator.name}
                     </Text>
-                  )}
-                  {indicator.details && (
-                    <Text
-                      style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
+                    <TouchableOpacity
+                      onPress={() =>
+                        openIndicatorModal(
+                          indicator.name,
+                          indicator.description
+                        )
+                      }
+                      style={{
+                        marginLeft: 6,
+                        width: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: '#8E8E93',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
                     >
-                      ${indicator.details.current.toFixed(2)}
-                    </Text>
-                  )}
+                      <Text style={{ fontSize: 10, color: '#8E8E93' }}>?</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 신호 및 수치 */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 4,
+                        backgroundColor:
+                          getSignalColor(indicator.signal) + '20',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: getSignalColor(indicator.signal),
+                        }}
+                      >
+                        {indicator.signalText}
+                      </Text>
+                    </View>
+                    {indicator.value !== null && (
+                      <Text
+                        style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
+                      >
+                        {indicator.value.toFixed(1)}
+                      </Text>
+                    )}
+                    {indicator.details && (
+                      <Text
+                        style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
+                      >
+                        {formatPriceInDisplayCurrency(
+                          indicator.details.current,
+                          price?.currency
+                        )}
+                      </Text>
+                    )}
+                  </View>
                 </View>
 
-                {/* 볼린저 밴드 상세 정보 */}
-                {indicator.details && (
-                  <View style={{ marginTop: 8 }}>
-                    <Text style={{ fontSize: 12, color: '#8E8E93' }}>
-                      상단: ${indicator.details.upper.toFixed(2)} | 중간: $
-                      {indicator.details.middle.toFixed(2)} | 하단: $
-                      {indicator.details.lower.toFixed(2)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* 오른쪽: 데이터 설명 */}
-              <View
-                style={{
-                  flex: 1.2,
-                  marginLeft: 12,
-                  justifyContent: 'center',
-                }}
-              >
-                <Text
-                  style={{ fontSize: 13, color: '#3C3C43', lineHeight: 18 }}
+                {/* 오른쪽: 데이터 설명 */}
+                <View
+                  style={{
+                    flex: 1.2,
+                    marginLeft: 12,
+                    justifyContent: 'center',
+                  }}
                 >
-                  {indicator.explanation}
-                </Text>
+                  <Text
+                    style={{ fontSize: 13, color: '#3C3C43', lineHeight: 18 }}
+                  >
+                    {indicator.explanation}
+                  </Text>
+
+                  {/* 볼린저 밴드 상세 정보 */}
+                  {indicator.details && (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={{ fontSize: 12, color: '#8E8E93' }}>
+                        상단:{' '}
+                        {formatPriceInDisplayCurrency(
+                          indicator.details.upper,
+                          price?.currency
+                        )}{' '}
+                        | 중간:{' '}
+                        {formatPriceInDisplayCurrency(
+                          indicator.details.middle,
+                          price?.currency
+                        )}{' '}
+                        | 하단:{' '}
+                        {formatPriceInDisplayCurrency(
+                          indicator.details.lower,
+                          price?.currency
+                        )}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
-            </View>
+            )}
           </Card>
         ))}
       </View>
@@ -813,31 +983,9 @@ const StockDetailScreen: React.FC = () => {
       style={globalStyles.container}
       contentContainerStyle={{ flexGrow: 1 }}
     >
-      {/* 헤더: 종목명 + 즐겨찾기 */}
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: 16,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Text style={[globalStyles.textTitle, { marginBottom: 16, flex: 1 }]}>
-          {name}
-        </Text>
-        <TouchableOpacity
-          onPress={handleFavoriteToggle}
-          style={{ padding: 8, marginBottom: 16 }}
-          disabled={favoriteLoading}
-        >
-          <Text style={[globalStyles.text, { fontSize: 24 }]}>
-            {isFavorite ? '⭐' : '☆'}
-          </Text>
-        </TouchableOpacity>
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+        {renderPriceInfo()}
       </View>
-
-      <View style={{ paddingHorizontal: 16 }}>{renderPriceInfo()}</View>
 
       {/* 탭 메뉴 */}
       <View

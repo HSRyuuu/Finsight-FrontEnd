@@ -8,6 +8,7 @@ import {
   MarketStatus,
   CandleStatus,
   ExchangeRate,
+  BollingerBandsData,
 } from '../types';
 
 // 종목 검색 훅
@@ -327,5 +328,54 @@ export const useExchangeRate = (
     loading,
     error,
     refetch: fetchRate,
+  };
+};
+
+// 볼린저 밴드 조회 훅
+export const useBollingerBands = (
+  symbol: string,
+  shouldFetch: boolean = true
+) => {
+  const [data, setData] = useState<BollingerBandsData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBollingerBands = async () => {
+    if (!symbol || !shouldFetch) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await stockService.getBollingerBands(symbol);
+      setData(result);
+
+      // ready가 false인 경우 3초 후 재조회
+      if (!result.ready) {
+        setTimeout(() => {
+          fetchBollingerBands();
+        }, 1000);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : '볼린저 밴드를 불러오는데 실패했습니다.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (shouldFetch) {
+      fetchBollingerBands();
+    }
+  }, [symbol, shouldFetch]);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchBollingerBands,
   };
 };

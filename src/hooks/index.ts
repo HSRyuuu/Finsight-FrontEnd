@@ -7,5 +7,6 @@ export {
   useCandleData,
   useMarketStatus,
   useExchangeRate,
+  useBollingerBands,
 } from './useStocks';
 export { useFavorites, useIsFavorite } from './useFavorites';
