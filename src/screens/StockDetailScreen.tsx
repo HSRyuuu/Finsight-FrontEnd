@@ -46,6 +46,7 @@ const StockDetailScreen: React.FC = () => {
     name: string;
     description: string;
   } | null>(null);
+  const [showBollingerBands, setShowBollingerBands] = useState(true);
 
   // 1단계: 캔들 상태 확인
   const {
@@ -465,12 +466,60 @@ const StockDetailScreen: React.FC = () => {
     // key prop을 사용하여 통화가 변경되면 차트를 완전히 다시 렌더링
     return (
       <View style={{ marginBottom: 16, width: '100%' }}>
+        {/* 볼린저 밴드 토글 버튼 */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            paddingHorizontal: 16,
+            marginBottom: 8,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => setShowBollingerBands(!showBollingerBands)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: showBollingerBands ? '#FF9500' : '#C6C6C8',
+              backgroundColor: showBollingerBands
+                ? 'rgba(255, 149, 0, 0.1)'
+                : 'transparent',
+            }}
+          >
+            <View
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: 6,
+                borderWidth: 2,
+                borderColor: '#FF9500',
+                backgroundColor: showBollingerBands ? '#FF9500' : 'transparent',
+                marginRight: 6,
+              }}
+            />
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: showBollingerBands ? '#FF9500' : '#8E8E93',
+              }}
+            >
+              볼린저 밴드
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <CandlestickChart
-          key={`chart-${displayCurrency}-${selectedPeriod}`}
+          key={`chart-${displayCurrency}-${selectedPeriod}-${showBollingerBands}`}
           data={finalChartData}
           height={300}
           timeframe={selectedPeriod === 'DAY1' ? 'day' : 'hour'}
           currency={displayCurrency}
+          showBollingerBands={showBollingerBands}
         />
       </View>
     );
@@ -762,119 +811,138 @@ const StockDetailScreen: React.FC = () => {
                 </View>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row' }}>
-                {/* 왼쪽: 지표명 + 신호 */}
-                <View style={{ flex: 1 }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text style={{ fontSize: 16, fontWeight: '600' }}>
-                      {indicator.name}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        openIndicatorModal(
-                          indicator.name,
-                          indicator.description
-                        )
-                      }
-                      style={{
-                        marginLeft: 6,
-                        width: 16,
-                        height: 16,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#8E8E93',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ fontSize: 10, color: '#8E8E93' }}>?</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* 신호 및 수치 */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View>
+                <View style={{ flexDirection: 'row' }}>
+                  {/* 왼쪽: 지표명 + 신호 */}
+                  <View style={{ flex: 1 }}>
                     <View
                       style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        borderRadius: 4,
-                        backgroundColor:
-                          getSignalColor(indicator.signal) + '20',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 8,
                       }}
                     >
-                      <Text
+                      <Text style={{ fontSize: 16, fontWeight: '600' }}>
+                        {indicator.name}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          openIndicatorModal(
+                            indicator.name,
+                            indicator.description
+                          )
+                        }
                         style={{
-                          fontSize: 12,
-                          fontWeight: '600',
-                          color: getSignalColor(indicator.signal),
+                          marginLeft: 6,
+                          width: 16,
+                          height: 16,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#8E8E93',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
-                        {indicator.signalText}
-                      </Text>
+                        <Text style={{ fontSize: 10, color: '#8E8E93' }}>
+                          ?
+                        </Text>
+                      </TouchableOpacity>
                     </View>
-                    {indicator.value !== null && (
-                      <Text
-                        style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
+
+                    {/* 신호 및 수치 */}
+                    <View
+                      style={{ flexDirection: 'row', alignItems: 'center' }}
+                    >
+                      <View
+                        style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 4,
+                          backgroundColor:
+                            getSignalColor(indicator.signal) + '20',
+                        }}
                       >
-                        {indicator.value.toFixed(1)}
-                      </Text>
-                    )}
-                    {indicator.details && (
-                      <Text
-                        style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
-                      >
-                        {formatPriceInDisplayCurrency(
-                          indicator.details.current,
-                          price?.currency
-                        )}
-                      </Text>
-                    )}
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            color: getSignalColor(indicator.signal),
+                          }}
+                        >
+                          {indicator.signalText}
+                        </Text>
+                      </View>
+                      {indicator.value !== null && (
+                        <Text
+                          style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
+                        >
+                          {indicator.value.toFixed(1)}
+                        </Text>
+                      )}
+                      {indicator.details && (
+                        <Text
+                          style={{ marginLeft: 8, fontSize: 14, color: '#000' }}
+                        >
+                          {formatPriceInDisplayCurrency(
+                            indicator.details.current,
+                            price?.currency
+                          )}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* 오른쪽: 데이터 설명 */}
+                  <View
+                    style={{
+                      flex: 1.2,
+                      marginLeft: 12,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text
+                      style={{ fontSize: 13, color: '#3C3C43', lineHeight: 18 }}
+                    >
+                      {indicator.explanation}
+                    </Text>
                   </View>
                 </View>
 
-                {/* 오른쪽: 데이터 설명 */}
-                <View
-                  style={{
-                    flex: 1.2,
-                    marginLeft: 12,
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text
-                    style={{ fontSize: 13, color: '#3C3C43', lineHeight: 18 }}
+                {/* 볼린저 밴드 상세 정보 - 카드 최하단에 표시 */}
+                {indicator.details && (
+                  <View
+                    style={{
+                      marginTop: 12,
+                      paddingTop: 12,
+                      borderTopWidth: 1,
+                      borderTopColor: '#F2F2F7',
+                    }}
                   >
-                    {indicator.explanation}
-                  </Text>
-
-                  {/* 볼린저 밴드 상세 정보 */}
-                  {indicator.details && (
-                    <View style={{ marginTop: 8 }}>
-                      <Text style={{ fontSize: 12, color: '#8E8E93' }}>
-                        상단:{' '}
-                        {formatPriceInDisplayCurrency(
-                          indicator.details.upper,
-                          price?.currency
-                        )}{' '}
-                        | 중간:{' '}
-                        {formatPriceInDisplayCurrency(
-                          indicator.details.middle,
-                          price?.currency
-                        )}{' '}
-                        | 하단:{' '}
-                        {formatPriceInDisplayCurrency(
-                          indicator.details.lower,
-                          price?.currency
-                        )}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: '#8E8E93',
+                        textAlign: 'center',
+                      }}
+                    >
+                      상단:{' '}
+                      {formatPriceInDisplayCurrency(
+                        indicator.details.upper,
+                        price?.currency
+                      )}{' '}
+                      | 중간:{' '}
+                      {formatPriceInDisplayCurrency(
+                        indicator.details.middle,
+                        price?.currency
+                      )}{' '}
+                      | 하단:{' '}
+                      {formatPriceInDisplayCurrency(
+                        indicator.details.lower,
+                        price?.currency
+                      )}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </Card>
