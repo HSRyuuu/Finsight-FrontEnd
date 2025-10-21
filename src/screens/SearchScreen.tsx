@@ -51,22 +51,14 @@ const SearchScreen: React.FC = () => {
   const renderSearchResult = ({ item }: { item: SearchResult }) => (
     <TouchableOpacity onPress={() => handleStockPress(item)}>
       <Card style={componentStyles.listItem}>
-        <View style={globalStyles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={componentStyles.listItemTitle}>{item.name}</Text>
-            <Text style={componentStyles.listItemSubtitle}>
-              {item.symbol} • {item.exchange} • {item.stockType}
-            </Text>
-            <Text style={[componentStyles.listItemSubtitle, { marginTop: 2 }]}>
-              {item.currency}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => handleFavoriteToggle(item)}
-            style={{ padding: 8 }}
-          >
-            <Text style={[globalStyles.text, { fontSize: 20 }]}>⭐</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={componentStyles.listItemTitle}>{item.name}</Text>
+          <Text style={componentStyles.listItemSubtitle}>
+            {item.symbol} • {item.exchange} • {item.stockType}
+          </Text>
+          <Text style={[componentStyles.listItemSubtitle, { marginTop: 2 }]}>
+            {item.currency}
+          </Text>
         </View>
       </Card>
     </TouchableOpacity>

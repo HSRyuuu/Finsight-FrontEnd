@@ -589,9 +589,9 @@ const StockDetailScreen: React.FC = () => {
       {
         STRONG_BUY: { signal: 'strong_buy', text: '강한 매수' },
         BUY: { signal: 'buy', text: '매수' },
-        BULLISH: { signal: 'bullish', text: '강세' },
+        BULLISH: { signal: 'neutral', text: '중립(강세)' },
         NEUTRAL: { signal: 'neutral', text: '중립' },
-        BEARISH: { signal: 'bearish', text: '약세' },
+        BEARISH: { signal: 'neutral', text: '중립(약세)' },
         SELL: { signal: 'sell', text: '매도' },
         STRONG_SELL: { signal: 'strong_sell', text: '강한 매도' },
       };
