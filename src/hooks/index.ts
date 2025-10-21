@@ -11,3 +11,4 @@ export {
   useRsi,
 } from './useStocks';
 export { useFavorites, useIsFavorite } from './useFavorites';
+export { useAuth } from './useAuth';

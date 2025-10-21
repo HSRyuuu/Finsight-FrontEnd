@@ -8,6 +8,7 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { Logo } from '../components';
 
@@ -16,6 +17,8 @@ import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import StockDetailScreen from '../screens/StockDetailScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 
 // 각 탭별 스택 네비게이터 생성
 const HomeStack = createStackNavigator();
@@ -37,35 +40,34 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 }) => {
   return (
     <View style={headerStyles.container}>
-      {/* 첫 번째 줄: 로고 + 사용자 영역 */}
+      {/* 첫 번째 줄: 로고 */}
       <View style={headerStyles.topRow}>
         <View style={headerStyles.logoContainer}>
           <Logo size={32} showText={true} />
         </View>
-        <View style={headerStyles.userArea}>
-          <Text style={headerStyles.userPlaceholder}>👤</Text>
-        </View>
       </View>
 
-      {/* 두 번째 줄: 뒤로가기 + 페이지 제목 */}
-      <View style={headerStyles.bottomRow}>
-        <View style={headerStyles.leftSection}>
-          {canGoBack && (
-            <TouchableOpacity
-              onPress={onBackPress}
-              style={headerStyles.backButton}
-            >
-              <Text style={headerStyles.backText}>← 뒤로</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* 두 번째 줄: 뒤로가기 + 페이지 제목 (title이 있을 때만 표시) */}
+      {title && (
+        <View style={headerStyles.bottomRow}>
+          <View style={headerStyles.leftSection}>
+            {canGoBack && (
+              <TouchableOpacity
+                onPress={onBackPress}
+                style={headerStyles.backButton}
+              >
+                <Text style={headerStyles.backText}>← 뒤로</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-        <View style={headerStyles.centerSection}>
-          <Text style={headerStyles.pageTitle}>{title}</Text>
-        </View>
+          <View style={headerStyles.centerSection}>
+            <Text style={headerStyles.pageTitle}>{title}</Text>
+          </View>
 
-        <View style={headerStyles.rightSection} />
-      </View>
+          <View style={headerStyles.rightSection} />
+        </View>
+      )}
     </View>
   );
 };
@@ -89,7 +91,7 @@ const HomeStackNavigator = () => {
         name="HomeMain"
         component={HomeScreen}
         options={{
-          header: () => <CustomHeader title="주식 트래커" />,
+          header: () => <CustomHeader title="" />,
         }}
       />
       <HomeStack.Screen
@@ -137,7 +139,7 @@ const SearchStackNavigator = () => {
   );
 };
 
-// 설정 스택 네비게이터
+// 내정보 스택 네비게이터
 const SettingsStackNavigator = () => {
   return (
     <SettingsStack.Navigator screenOptions={commonHeaderOptions}>
@@ -145,8 +147,34 @@ const SettingsStackNavigator = () => {
         name="SettingsMain"
         component={SettingsScreen}
         options={{
-          header: () => <CustomHeader title="설정" />,
+          header: () => <CustomHeader title="내정보" />,
         }}
+      />
+      <SettingsStack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={({ navigation }) => ({
+          header: () => (
+            <CustomHeader
+              title="로그인"
+              canGoBack={true}
+              onBackPress={() => navigation.goBack()}
+            />
+          ),
+        })}
+      />
+      <SettingsStack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={({ navigation }) => ({
+          header: () => (
+            <CustomHeader
+              title="회원가입"
+              canGoBack={true}
+              onBackPress={() => navigation.goBack()}
+            />
+          ),
+        })}
       />
     </SettingsStack.Navigator>
   );
@@ -185,7 +213,13 @@ const TabNavigator = () => {
         options={{
           title: '홈',
           tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 26, color, fontWeight: 'bold' }}>🏠</Text>
+            <Image
+              source={require('../assets/home.png')}
+              style={{ width: 24, height: 24 }}
+              // @ts-ignore - tintColor는 웹에서 지원됨
+              tintColor={color}
+              resizeMode="contain"
+            />
           ),
         }}
       />
@@ -195,7 +229,13 @@ const TabNavigator = () => {
         options={{
           title: '검색',
           tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 26, color, fontWeight: 'bold' }}>🔎</Text>
+            <Image
+              source={require('../assets/search.png')}
+              style={{ width: 24, height: 24 }}
+              // @ts-ignore - tintColor는 웹에서 지원됨
+              tintColor={color}
+              resizeMode="contain"
+            />
           ),
         }}
       />
@@ -203,9 +243,15 @@ const TabNavigator = () => {
         name="Settings"
         component={SettingsStackNavigator}
         options={{
-          title: '설정',
+          title: '내 정보',
           tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 26, color, fontWeight: 'bold' }}>⚙️</Text>
+            <Image
+              source={require('../assets/user.png')}
+              style={{ width: 24, height: 24 }}
+              // @ts-ignore - tintColor는 웹에서 지원됨
+              tintColor={color}
+              resizeMode="contain"
+            />
           ),
         }}
       />

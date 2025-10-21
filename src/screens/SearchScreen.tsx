@@ -134,16 +134,6 @@ const SearchScreen: React.FC = () => {
   return (
     <View style={globalStyles.container}>
       <View style={globalStyles.content}>
-        <Text
-          style={[
-            globalStyles.textTitle,
-            globalStyles.textCenter,
-            globalStyles.marginBottom,
-          ]}
-        >
-          종목 검색
-        </Text>
-
         <View style={[globalStyles.input, globalStyles.marginBottom]}>
           <TextInput
             style={globalStyles.text}
