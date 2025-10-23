@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,18 +8,34 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { globalStyles, componentStyles } from '../styles';
-import { Card } from '../components';
+import { Card, toastManager, ConfirmModal } from '../components';
 import { useAuth } from '../hooks';
+import authService from '../services/authService';
 
 type SettingsScreenNavigationProp = StackNavigationProp<any>;
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   // 인증 훅 사용
-  const { userInfo, loading: authLoading, isAuthenticated } = useAuth();
+  const {
+    userInfo,
+    loading: authLoading,
+    isAuthenticated,
+    logout,
+    refresh,
+  } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // 화면이 포커스될 때마다 사용자 정보 새로 로드
+  useFocusEffect(
+    React.useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   const settingsItems = [
     // { title: '알림 설정', description: '가격 알림 및 뉴스 알림 설정' },
@@ -32,6 +48,49 @@ const SettingsScreen: React.FC = () => {
   const handleSettingPress = (title: string) => {
     console.log(`${title} 설정을 눌렀습니다.`);
     // 실제 구현에서는 각 설정 화면으로 이동
+  };
+
+  const handleLogoutClick = () => {
+    console.log('🔵 로그아웃 버튼 클릭됨');
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    console.log('🔵 로그아웃 확인됨');
+    setShowLogoutModal(false);
+    setIsLoggingOut(true);
+
+    try {
+      console.log('🔵 로그아웃 API 호출 시작');
+      // 로그아웃 API 호출 (내부에서 storage 삭제 처리)
+      const success = await authService.logoutWithApi();
+
+      if (success) {
+        console.log('✅ 로그아웃 완료');
+        toastManager.show('로그아웃되었습니다.', 'success');
+        // 사용자 정보 갱신 (로그아웃 상태로 변경)
+        await refresh();
+      }
+    } catch (error: any) {
+      console.error('❌ 로그아웃 실패:', error);
+      toastManager.show(
+        error.message || '로그아웃 중 오류가 발생했습니다.',
+        'error'
+      );
+    } finally {
+      setIsLoggingOut(false);
+      console.log('🔵 로그아웃 프로세스 종료');
+    }
+  };
+
+  const handleLogoutCancel = () => {
+    console.log('🔵 로그아웃 취소됨');
+    setShowLogoutModal(false);
+  };
+
+  const handleDeleteAccount = () => {
+    // TODO: 회원 탈퇴 API 구현
+    toastManager.show('회원 탈퇴 기능은 준비 중입니다.', 'info');
   };
 
   return (
@@ -65,7 +124,8 @@ const SettingsScreen: React.FC = () => {
               {/* 사용자 정보 */}
               <View style={styles.userDetails}>
                 <Text style={styles.userName}>{userInfo.nickname}</Text>
-                <Text style={styles.userEmail}>{userInfo.username}</Text>
+                <Text style={styles.userEmail}>{userInfo.email}</Text>
+                <Text style={styles.userRole}>{userInfo.username}</Text>
               </View>
             </View>
           ) : (
@@ -110,7 +170,45 @@ const SettingsScreen: React.FC = () => {
             </Card>
           </TouchableOpacity>
         ))}
+
+        {/* 계정 관리 - 로그인 상태일 때만 표시 */}
+        {isAuthenticated && userInfo && (
+          <View style={styles.accountManagementContainer}>
+            {/* 로그아웃 버튼 */}
+            <TouchableOpacity
+              onPress={handleLogoutClick}
+              disabled={isLoggingOut}
+              style={styles.smallButtonContainer}
+            >
+              {isLoggingOut ? (
+                <ActivityIndicator size="small" color="#8E8E93" />
+              ) : (
+                <Text style={styles.logoutButtonText}>로그아웃</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* 회원 탈퇴 링크 */}
+            <TouchableOpacity
+              onPress={handleDeleteAccount}
+              disabled={isLoggingOut}
+              style={styles.deleteAccountLink}
+            >
+              <Text style={styles.deleteAccountText}>회원 탈퇴</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
+
+      {/* 로그아웃 확인 모달 */}
+      <ConfirmModal
+        visible={showLogoutModal}
+        title="로그아웃"
+        message="로그아웃 하시겠습니까?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={handleLogoutConfirm}
+        onCancel={handleLogoutCancel}
+      />
     </ScrollView>
   );
 };
@@ -178,6 +276,11 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: '#8E8E93',
+    marginBottom: 2,
+  },
+  userRole: {
+    fontSize: 12,
+    color: '#8E8E93',
   },
   sectionHeader: {
     marginBottom: 12,
@@ -188,6 +291,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
     paddingLeft: 4,
+  },
+  accountManagementContainer: {
+    marginTop: 32,
+    marginBottom: 24,
+    alignItems: 'center',
+    gap: 12,
+  },
+  smallButtonContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 1,
+    borderColor: '#D1D1D6',
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButtonText: {
+    color: '#8E8E93',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  deleteAccountLink: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  deleteAccountText: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '400',
+    textDecorationLine: 'underline',
   },
 });
 

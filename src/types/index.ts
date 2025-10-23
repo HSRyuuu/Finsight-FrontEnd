@@ -6,6 +6,33 @@ export interface ApiResponse<T = any> {
   data: T;
 }
 
+// 로그인 요청
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+// 사용자 정보
+export interface UserInfo {
+  id: number;
+  username: string;
+  nickname: string;
+  email: string;
+  role: string;
+  profileImage?: string;
+}
+
+// 로그인 응답
+export interface LoginResponse {
+  accessToken: string;
+  userInfo: UserInfo;
+}
+
+// 로그아웃 응답
+export interface LogoutResponse {
+  success: boolean;
+}
+
 // 주식/ETF 기본 정보
 export interface Stock {
   symbol: string;

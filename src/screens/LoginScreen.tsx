@@ -6,40 +6,49 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { globalStyles } from '../styles';
-import { Card } from '../components';
+import { Card, toastManager } from '../components';
+import authService from '../services/authService';
+import { useAuth } from '../hooks';
 
 type LoginScreenNavigationProp = StackNavigationProp<any>;
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const { refresh } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      Alert.alert('입력 오류', '아이디와 비밀번호를 모두 입력해주세요.');
+      toastManager.show('아이디와 비밀번호를 모두 입력해주세요.', 'error');
       return;
     }
 
     setLoading(true);
+
     try {
-      // TODO: 실제 로그인 API 호출
-      // const response = await loginApi(username, password);
-      // await authService.login(response.token, response.refreshToken, response.user);
+      // 로그인 API 호출 및 토큰 저장
+      const userInfo = await authService.loginWithApi(username, password);
 
-      Alert.alert('준비 중', '로그인 API 연동이 필요합니다.');
+      // useAuth 상태 갱신
+      await refresh();
 
-      // 성공 시 이전 화면으로 이동
-      // navigation.goBack();
-    } catch (error) {
-      Alert.alert('로그인 실패', '아이디 또는 비밀번호를 확인해주세요.');
+      // Toast 메시지 표시
+      toastManager.show(`${userInfo.nickname}님 반가워요!`, 'success');
+
+      // LoginScreen을 스택에서 제거하고 이전 화면(SettingsMain)으로 돌아감
+      navigation.goBack();
+    } catch (error: any) {
+      toastManager.show(
+        error.message || '아이디 또는 비밀번호를 확인해주세요.',
+        'error'
+      );
     } finally {
       setLoading(false);
     }

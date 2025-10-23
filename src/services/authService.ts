@@ -1,4 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import {
+  LoginRequest,
+  LoginResponse,
+  LogoutResponse,
+  ApiResponse,
+  UserInfo,
+} from '../types';
+import { API_BASE_URL } from '../utils/constants';
+import { apiService } from './api';
 
 // 저장소 키
 const STORAGE_KEYS = {
@@ -6,15 +16,6 @@ const STORAGE_KEYS = {
   AUTH_TOKEN: '@auth_token',
   REFRESH_TOKEN: '@refresh_token',
 } as const;
-
-// 사용자 정보 타입
-export interface UserInfo {
-  id: number; // DB의 auto increment ID (무의미한 값)
-  username: string; // 사용자 식별자 (로그인 ID)
-  nickname: string; // 화면 표시용 이름
-  profileImage?: string;
-  createdAt?: string;
-}
 
 // 인증 서비스
 class AuthService {
@@ -141,6 +142,79 @@ class AuthService {
     } catch (error) {
       console.error('인증 상태 확인 실패:', error);
       return false;
+    }
+  }
+
+  /**
+   * 로그인 API 호출
+   */
+  async loginWithApi(username: string, password: string): Promise<UserInfo> {
+    try {
+      const loginData: LoginRequest = { username, password };
+
+      // 로그인 API는 토큰이 필요 없으므로 axios를 직접 사용
+      const { data } = await axios.post<ApiResponse<LoginResponse>>(
+        `${API_BASE_URL}/api/auth/login`,
+        loginData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      // accessToken 저장
+      await this.saveAuthToken(data.data.accessToken);
+
+      // 응답에서 받은 사용자 정보 저장
+      const userInfo = data.data.userInfo;
+      await this.saveUserInfo(userInfo);
+
+      return userInfo;
+    } catch (error: any) {
+      console.error('로그인 API 호출 실패:', error);
+
+      // 에러 메시지 처리
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+
+      throw new Error(
+        '로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.'
+      );
+    }
+  }
+
+  /**
+   * 로그아웃 API 호출
+   */
+  async logoutWithApi(): Promise<boolean> {
+    try {
+      // 토큰이 필요한 GET 요청이므로 apiService 사용
+      const response = await apiService.get<LogoutResponse>('/api/auth/logout');
+      console.log('로그아웃 API 호출 성공:', response);
+
+      // success = true 확인
+      if (response.success) {
+        console.log('✅ 로그아웃 성공, storage 삭제 시작');
+        // storage에서 모든 인증 정보 삭제
+        await this.logout();
+        console.log('✅ storage 삭제 완료');
+        return true;
+      } else {
+        console.error('❌ 로그아웃 실패: success = false');
+        throw new Error('로그아웃에 실패했습니다.');
+      }
+    } catch (error: any) {
+      console.error('로그아웃 API 호출 실패:', error);
+
+      // 에러 메시지 처리
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+
+      throw new Error('로그아웃 처리 중 오류가 발생했습니다.');
     }
   }
 

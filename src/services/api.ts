@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_BASE_URL } from '../utils/constants';
 import { ApiResponse } from '../types';
+import authService from './authService';
 
 class ApiService {
   private instance: AxiosInstance;
@@ -20,9 +21,9 @@ class ApiService {
   private setupInterceptors() {
     // 요청 인터셉터
     this.instance.interceptors.request.use(
-      config => {
+      async config => {
         // 토큰이 있다면 헤더에 추가
-        const token = this.getToken();
+        const token = await this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -38,24 +39,25 @@ class ApiService {
       (response: AxiosResponse) => {
         return response;
       },
-      error => {
+      async error => {
         // 에러 처리
         if (error.response?.status === 401) {
           // 토큰 만료 시 로그아웃 처리
-          this.clearToken();
+          await this.clearToken();
         }
         return Promise.reject(error);
       }
     );
   }
 
-  private getToken(): string | null {
-    // 실제 구현에서는 AsyncStorage나 SecureStore 사용
-    return null;
+  private async getToken(): Promise<string | null> {
+    // authService를 통해 토큰 조회
+    return await authService.getAuthToken();
   }
 
-  private clearToken(): void {
-    // 실제 구현에서는 토큰 제거 로직
+  private async clearToken(): Promise<void> {
+    // authService를 통해 로그아웃 처리
+    await authService.logout();
   }
 
   // GET 요청

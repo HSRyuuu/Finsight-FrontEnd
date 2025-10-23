@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import authService, { UserInfo } from '../services/authService';
+import authService from '../services/authService';
+import { UserInfo } from '../types';
 
 /**
  * 인증 관련 커스텀 훅
@@ -15,7 +16,7 @@ export const useAuth = () => {
       setLoading(true);
       const user = await authService.getUserInfo();
       const authenticated = await authService.isAuthenticated();
-      
+
       setUserInfo(user);
       setIsAuthenticated(authenticated);
     } catch (error) {
@@ -68,24 +69,20 @@ export const useAuth = () => {
   }, []);
 
   // 사용자 정보 업데이트
-  const updateUser = useCallback(
-    async (updates: Partial<UserInfo>) => {
-      try {
-        await authService.updateUserInfo(updates);
-        const updatedUser = await authService.getUserInfo();
-        setUserInfo(updatedUser);
-        return { success: true };
-      } catch (error) {
-        console.error('사용자 정보 업데이트 실패:', error);
-        return {
-          success: false,
-          error:
-            error instanceof Error ? error.message : '정보 업데이트 실패',
-        };
-      }
-    },
-    []
-  );
+  const updateUser = useCallback(async (updates: Partial<UserInfo>) => {
+    try {
+      await authService.updateUserInfo(updates);
+      const updatedUser = await authService.getUserInfo();
+      setUserInfo(updatedUser);
+      return { success: true };
+    } catch (error) {
+      console.error('사용자 정보 업데이트 실패:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '정보 업데이트 실패',
+      };
+    }
+  }, []);
 
   // 토큰 가져오기
   const getToken = useCallback(async () => {
@@ -103,4 +100,3 @@ export const useAuth = () => {
     refresh: loadUserInfo,
   };
 };
-
