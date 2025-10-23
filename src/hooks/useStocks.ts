@@ -88,7 +88,7 @@ export const useCandleStatus = (symbol: string) => {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
     let attemptCount = 0;
-    const delays = [500, 700, 1000]; // ms
+    const delays = [500, 700, 700, 1000, 1000]; // ms
 
     const pollStatus = async () => {
       // 첫 번째 조회는 loading 없이 실행
@@ -341,43 +341,89 @@ export const useBollingerBands = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBollingerBands = async () => {
-    if (!symbol || !shouldFetch) return;
+  const checkBollingerBands = async (shouldSetLoading: boolean = true) => {
+    if (!symbol || !shouldFetch) return null;
 
     try {
-      setLoading(true);
+      if (shouldSetLoading) {
+        setLoading(true);
+      }
       setError(null);
       const result = await stockService.getBollingerBands(symbol);
       setData(result);
-
-      // ready가 false인 경우 3초 후 재조회
-      if (!result.ready) {
-        setTimeout(() => {
-          fetchBollingerBands();
-        }, 1000);
-      }
+      return result;
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : '볼린저 밴드를 불러오는데 실패했습니다.'
       );
+      return null;
     } finally {
-      setLoading(false);
+      if (shouldSetLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (shouldFetch) {
-      fetchBollingerBands();
-    }
+    if (!shouldFetch || !symbol) return;
+
+    let timeoutId: NodeJS.Timeout | null = null;
+    let attemptCount = 0;
+    const delays = [500, 500, 1000, 1000, 1000]; // ms
+
+    const pollBollingerBands = async () => {
+      // 첫 번째 조회는 loading 없이 실행
+      const isFirstAttempt = attemptCount === 0;
+      const result = await checkBollingerBands(false);
+
+      // ready가 true이면 성공
+      if (result && result.ready) {
+        setLoading(false); // 혹시 모를 loading 상태 정리
+        return;
+      }
+
+      // 첫 번째 조회가 false였다면 이제 loading 시작
+      if (isFirstAttempt) {
+        setLoading(true);
+      }
+
+      // 실패했지만 아직 시도 횟수가 남았으면 재시도
+      if (attemptCount < delays.length) {
+        const delay = delays[attemptCount];
+        attemptCount++;
+
+        timeoutId = setTimeout(() => {
+          pollBollingerBands();
+        }, delay);
+      } else {
+        // 5번 모두 실패
+        setError('볼린저 밴드 데이터를 수집하지 못했습니다.');
+        setLoading(false);
+      }
+    };
+
+    pollBollingerBands();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [symbol, shouldFetch]);
+
+  const refetch = () => {
+    setError(null);
+    setLoading(true);
+    checkBollingerBands(true);
+  };
 
   return {
     data,
     loading,
     error,
-    refetch: fetchBollingerBands,
+    refetch,
   };
 };
 
@@ -387,40 +433,86 @@ export const useRsi = (symbol: string, shouldFetch: boolean = true) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRsi = async () => {
-    if (!symbol || !shouldFetch) return;
+  const checkRsi = async (shouldSetLoading: boolean = true) => {
+    if (!symbol || !shouldFetch) return null;
 
     try {
-      setLoading(true);
+      if (shouldSetLoading) {
+        setLoading(true);
+      }
       setError(null);
       const result = await stockService.getRsi(symbol);
       setData(result);
-
-      // ready가 false인 경우 1초 후 재조회
-      if (!result.ready) {
-        setTimeout(() => {
-          fetchRsi();
-        }, 1000);
-      }
+      return result;
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'RSI를 불러오는데 실패했습니다.'
       );
+      return null;
     } finally {
-      setLoading(false);
+      if (shouldSetLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (shouldFetch) {
-      fetchRsi();
-    }
+    if (!shouldFetch || !symbol) return;
+
+    let timeoutId: NodeJS.Timeout | null = null;
+    let attemptCount = 0;
+    const delays = [500, 500, 1000, 1000, 1000]; // ms
+
+    const pollRsi = async () => {
+      // 첫 번째 조회는 loading 없이 실행
+      const isFirstAttempt = attemptCount === 0;
+      const result = await checkRsi(false);
+
+      // ready가 true이면 성공
+      if (result && result.ready) {
+        setLoading(false); // 혹시 모를 loading 상태 정리
+        return;
+      }
+
+      // 첫 번째 조회가 false였다면 이제 loading 시작
+      if (isFirstAttempt) {
+        setLoading(true);
+      }
+
+      // 실패했지만 아직 시도 횟수가 남았으면 재시도
+      if (attemptCount < delays.length) {
+        const delay = delays[attemptCount];
+        attemptCount++;
+
+        timeoutId = setTimeout(() => {
+          pollRsi();
+        }, delay);
+      } else {
+        // 5번 모두 실패
+        setError('RSI 데이터를 수집하지 못했습니다.');
+        setLoading(false);
+      }
+    };
+
+    pollRsi();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [symbol, shouldFetch]);
+
+  const refetch = () => {
+    setError(null);
+    setLoading(true);
+    checkRsi(true);
+  };
 
   return {
     data,
     loading,
     error,
-    refetch: fetchRsi,
+    refetch,
   };
 };
