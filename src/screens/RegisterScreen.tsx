@@ -281,7 +281,7 @@ const RegisterScreen: React.FC = () => {
                   disabled={checkingUsername || loading || usernameAvailable}
                 >
                   {checkingUsername ? (
-                    <ActivityIndicator size="small" color="#007AFF" />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.checkButtonText}>
                       {usernameAvailable ? '확인완료' : '중복확인'}
@@ -333,7 +333,7 @@ const RegisterScreen: React.FC = () => {
                   disabled={checkingEmail || loading || emailAvailable}
                 >
                   {checkingEmail ? (
-                    <ActivityIndicator size="small" color="#007AFF" />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.checkButtonText}>
                       {emailAvailable ? '확인완료' : '중복확인'}
@@ -406,7 +406,7 @@ const RegisterScreen: React.FC = () => {
                   disabled={checkingNickname || loading || nicknameAvailable}
                 >
                   {checkingNickname ? (
-                    <ActivityIndicator size="small" color="#007AFF" />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.checkButtonText}>
                       {nicknameAvailable ? '확인완료' : '중복확인'}
@@ -656,20 +656,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   checkButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#1E3A8A',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 80,
+    minWidth: 70,
   },
   checkButtonDisabled: {
     opacity: 0.6,
   },
   checkButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   checkResult: {
@@ -716,9 +716,9 @@ const styles = StyleSheet.create({
     color: '#34C759',
   },
   registerButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1E3A8A',
     borderRadius: 8,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     marginTop: 8,
   },
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
   },
   registerButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
   // 모달 스타일
@@ -783,9 +783,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   modalButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1E3A8A',
     borderRadius: 8,
-    padding: 14,
+    padding: 12,
     alignItems: 'center',
   },
   modalButtonText: {

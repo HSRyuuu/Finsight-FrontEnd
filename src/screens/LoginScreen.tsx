@@ -42,8 +42,19 @@ const LoginScreen: React.FC = () => {
       // Toast 메시지 표시
       toastManager.show(`${userInfo.nickname}님 반가워요!`, 'success');
 
-      // LoginScreen을 스택에서 제거하고 이전 화면(SettingsMain)으로 돌아감
-      navigation.goBack();
+      // Settings 스택을 리셋 (Login 화면 제거)
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'SettingsMain' }],
+      });
+
+      // 홈으로 이동
+      setTimeout(() => {
+        const parent = navigation.getParent();
+        if (parent) {
+          parent.navigate('Home');
+        }
+      }, 100);
     } catch (error: any) {
       toastManager.show(
         error.message || '아이디 또는 비밀번호를 확인해주세요.',
@@ -171,9 +182,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F9F9',
   },
   loginButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1E3A8A',
     borderRadius: 8,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     marginTop: 8,
   },
@@ -182,21 +193,21 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
   registerButton: {
     backgroundColor: 'transparent',
     borderRadius: 8,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#1E3A8A',
   },
   registerButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
+    color: '#1E3A8A',
+    fontSize: 15,
     fontWeight: '600',
   },
 });

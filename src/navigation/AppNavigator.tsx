@@ -153,15 +153,9 @@ const SettingsStackNavigator = () => {
       <SettingsStack.Screen
         name="Login"
         component={LoginScreen}
-        options={({ navigation }) => ({
-          header: () => (
-            <CustomHeader
-              title="로그인"
-              canGoBack={true}
-              onBackPress={() => navigation.goBack()}
-            />
-          ),
-        })}
+        options={{
+          header: () => <CustomHeader title="로그인" />,
+        }}
       />
       <SettingsStack.Screen
         name="Register"

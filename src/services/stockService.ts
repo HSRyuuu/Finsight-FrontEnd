@@ -17,7 +17,7 @@ export class StockService {
   async searchStocks(query: string): Promise<SearchResult[]> {
     try {
       return await apiService.get<SearchResult[]>(
-        `/api/stock/symbols/search?q=${encodeURIComponent(query)}`
+        `/api/public/stock/symbols/search?q=${encodeURIComponent(query)}`
       );
     } catch (error) {
       console.error('종목 검색 실패:', error);
@@ -28,7 +28,7 @@ export class StockService {
   // 종목 상세 정보 조회
   async getStock(symbol: string): Promise<Stock> {
     try {
-      return await apiService.get<Stock>(`/api/stock/symbols/${symbol}`);
+      return await apiService.get<Stock>(`/api/public/stock/symbols/${symbol}`);
     } catch (error) {
       console.error(`종목 ${symbol} 조회 실패:`, error);
       throw error;
@@ -39,7 +39,7 @@ export class StockService {
   async getStockPrice(symbol: string): Promise<StockPrice> {
     try {
       return await apiService.get<StockPrice>(
-        `/api/stock/symbols/${symbol}/current-price`
+        `/api/public/stock/symbols/${symbol}/current-price`
       );
     } catch (error) {
       console.error(`종목 ${symbol} 가격 조회 실패:`, error);
@@ -51,7 +51,7 @@ export class StockService {
   async getMultipleStockPrices(symbols: string[]): Promise<StockPrice[]> {
     // TODO: 실시간 가격 API 연동 시 주석 해제
     // try {
-    //   return await apiService.post<StockPrice[]>('/api/stock/prices/batch', {
+    //   return await apiService.post<StockPrice[]>('/api/public/stock/prices/batch', {
     //     symbols,
     //   });
     // } catch (error) {
@@ -83,7 +83,7 @@ export class StockService {
   async getCandleStatus(symbol: string): Promise<CandleStatus> {
     try {
       return await apiService.get<CandleStatus>(
-        `/api/stock/candles/${symbol}/status`
+        `/api/public/stock/candles/${symbol}/status`
       );
     } catch (error) {
       console.error(`종목 ${symbol} 캔들 상태 조회 실패:`, error);
@@ -97,7 +97,7 @@ export class StockService {
       // 백엔드 API에 맞는 파라미터 변환
       const timeFrame = this.convertPeriodToTimeFrame(period);
       return await apiService.get<CandleData[]>(
-        `/api/stock/candles/${symbol}?tf=${timeFrame}`
+        `/api/public/stock/candles/${symbol}?tf=${timeFrame}`
       );
     } catch (error) {
       console.error(`종목 ${symbol} 차트 데이터 조회 실패:`, error);
@@ -138,7 +138,7 @@ export class StockService {
   // 인기 종목 조회
   async getPopularStocks(): Promise<Stock[]> {
     try {
-      return await apiService.get<Stock[]>('/api/stock/popular');
+      return await apiService.get<Stock[]>('/api/public/stock/popular');
     } catch (error) {
       console.error('인기 종목 조회 실패:', error);
       throw error;
@@ -148,7 +148,9 @@ export class StockService {
   // 섹터별 종목 조회
   async getStocksBySector(sector: string): Promise<Stock[]> {
     try {
-      return await apiService.get<Stock[]>(`/api/stock/sector/${sector}`);
+      return await apiService.get<Stock[]>(
+        `/api/public/stock/sector/${sector}`
+      );
     } catch (error) {
       console.error(`섹터 ${sector} 종목 조회 실패:`, error);
       throw error;
@@ -162,7 +164,7 @@ export class StockService {
   ): Promise<ExchangeRate> {
     try {
       return await apiService.get<ExchangeRate>(
-        `/api/exchange/current?base=${base}&quote=${quote}`
+        `/api/public/exchange/current?base=${base}&quote=${quote}`
       );
     } catch (error) {
       console.error(`환율 ${base}/${quote} 조회 실패:`, error);
@@ -174,7 +176,7 @@ export class StockService {
   async getBollingerBands(symbol: string): Promise<BollingerBandsData> {
     try {
       return await apiService.get<BollingerBandsData>(
-        `/api/indicators/bollinger-bands/${symbol}`
+        `/api/public/indicators/bollinger-bands/${symbol}`
       );
     } catch (error) {
       console.error(`종목 ${symbol} 볼린저 밴드 조회 실패:`, error);
@@ -185,7 +187,9 @@ export class StockService {
   // RSI 조회
   async getRsi(symbol: string): Promise<RsiData> {
     try {
-      return await apiService.get<RsiData>(`/api/indicators/rsi/${symbol}`);
+      return await apiService.get<RsiData>(
+        `/api/public/indicators/rsi/${symbol}`
+      );
     } catch (error) {
       console.error(`종목 ${symbol} RSI 조회 실패:`, error);
       throw error;

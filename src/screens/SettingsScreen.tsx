@@ -29,12 +29,23 @@ const SettingsScreen: React.FC = () => {
   } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
-  // 화면이 포커스될 때마다 사용자 정보 새로 로드
+  // 화면이 포커스될 때마다 사용자 정보 새로 로드 및 인증 체크
   useFocusEffect(
     React.useCallback(() => {
-      refresh();
-    }, [refresh])
+      const checkAuth = async () => {
+        await refresh();
+
+        // 로그인 체크를 아직 하지 않았고, 로딩이 끝났고, 인증되지 않은 경우에만 Login으로 이동
+        if (!hasCheckedAuth && !authLoading && !isAuthenticated) {
+          setHasCheckedAuth(true);
+          navigation.navigate('Login');
+        }
+      };
+
+      checkAuth();
+    }, [refresh, hasCheckedAuth, authLoading, isAuthenticated, navigation])
   );
 
   const settingsItems = [
@@ -70,6 +81,8 @@ const SettingsScreen: React.FC = () => {
         toastManager.show('로그아웃되었습니다.', 'success');
         // 사용자 정보 갱신 (로그아웃 상태로 변경)
         await refresh();
+        // 인증 체크 플래그 리셋 (다음에 다시 체크하도록)
+        setHasCheckedAuth(false);
       }
     } catch (error: any) {
       console.error('❌ 로그아웃 실패:', error);
@@ -96,14 +109,9 @@ const SettingsScreen: React.FC = () => {
   return (
     <ScrollView style={globalStyles.container}>
       <View style={globalStyles.content}>
-        {/* 사용자 정보 카드 */}
-        <Card style={[componentStyles.listItem, { marginBottom: 24 }]}>
-          {authLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
-              <Text style={styles.loadingText}>사용자 정보 로딩 중...</Text>
-            </View>
-          ) : isAuthenticated && userInfo ? (
+        {/* 사용자 정보 카드 - 로그인된 경우만 표시 */}
+        {isAuthenticated && userInfo && (
+          <Card style={[componentStyles.listItem, { marginBottom: 24 }]}>
             <View style={styles.userInfoContainer}>
               {/* 프로필 이미지 */}
               <View style={styles.profileIcon}>
@@ -128,27 +136,8 @@ const SettingsScreen: React.FC = () => {
                 <Text style={styles.userRole}>{userInfo.username}</Text>
               </View>
             </View>
-          ) : (
-            <View style={styles.loginPromptContainer}>
-              <View style={styles.profileIcon}>
-                <Image
-                  source={require('../assets/logo.png')}
-                  style={styles.profileImage}
-                  resizeMode="contain"
-                />
-              </View>
-              <View style={styles.userDetails}>
-                <Text style={styles.loginPromptText}>로그인이 필요합니다</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={() => navigation.navigate('Login')}
-              >
-                <Text style={styles.loginButtonText}>로그인</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </Card>
+          </Card>
+        )}
 
         {/* 설정 섹션 */}
         <View style={styles.sectionHeader}>
@@ -214,37 +203,6 @@ const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  loginPromptContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  loginPromptText: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  loginButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   userInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
