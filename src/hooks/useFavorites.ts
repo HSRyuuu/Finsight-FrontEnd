@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { favoriteService } from '../services';
-import { FavoriteStock } from '../types';
+import { FavoriteStock, FavoriteGroup } from '../types';
 
 // 즐겨찾기 목록 훅
 export const useFavorites = () => {
@@ -106,5 +106,114 @@ export const useIsFavorite = (symbol: string) => {
     isFavorite,
     loading,
     refetch: checkFavorite,
+  };
+};
+
+// 즐겨찾기 그룹 관리 훅
+export const useFavoriteGroups = () => {
+  const [groups, setGroups] = useState<FavoriteGroup[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchGroups = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await favoriteService.getGroups();
+      setGroups(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : '그룹 목록을 불러오는데 실패했습니다.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const addGroup = async (name: string) => {
+    try {
+      await favoriteService.addGroup(name);
+      await fetchGroups();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '그룹 추가에 실패했습니다.'
+      );
+      throw err;
+    }
+  };
+
+  const updateGroup = async (groupId: string, name: string) => {
+    try {
+      await favoriteService.updateGroup(groupId, name);
+      await fetchGroups();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '그룹 수정에 실패했습니다.'
+      );
+      throw err;
+    }
+  };
+
+  const deleteGroup = async (groupId: string) => {
+    try {
+      await favoriteService.deleteGroup(groupId);
+      await fetchGroups();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '그룹 삭제에 실패했습니다.'
+      );
+      throw err;
+    }
+  };
+
+  return {
+    groups,
+    loading,
+    error,
+    addGroup,
+    updateGroup,
+    deleteGroup,
+    refetch: fetchGroups,
+  };
+};
+
+// 그룹별 즐겨찾기 조회 훅
+export const useFavoritesByGroup = (groupId: string) => {
+  const [favorites, setFavorites] = useState<FavoriteStock[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchFavorites = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await favoriteService.getFavoritesByGroup(groupId);
+      setFavorites(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : '즐겨찾기 목록을 불러오는데 실패했습니다.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFavorites();
+  }, [groupId]);
+
+  return {
+    favorites,
+    loading,
+    error,
+    refetch: fetchFavorites,
   };
 };

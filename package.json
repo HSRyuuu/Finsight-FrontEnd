@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web --port 4000",
-    "build:web": "expo build:web",
+    "build:web": "npx expo export --platform web",
     "prebuild:web": "npm run clean",
     "deploy": "npm run clean && npm ci && npm run build:web",
     "clean": "rm -rf .expo node_modules/.cache .metro web-build dist",

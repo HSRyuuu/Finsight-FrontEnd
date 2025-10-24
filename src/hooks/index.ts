@@ -10,5 +10,11 @@ export {
   useBollingerBands,
   useRsi,
 } from './useStocks';
-export { useFavorites, useIsFavorite } from './useFavorites';
+export {
+  useFavorites,
+  useIsFavorite,
+  useFavoriteGroups,
+  useFavoritesByGroup,
+} from './useFavorites';
 export { useAuth } from './useAuth';
+export { useWatchlist, useWatchlistSymbols } from './useWatchlist';

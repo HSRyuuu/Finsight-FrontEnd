@@ -2,6 +2,7 @@
 export { apiService } from './api';
 export { stockService } from './stockService';
 export { favoriteService } from './favoriteService';
+export { watchlistService } from './watchlistService';
 export { default as authService } from './authService';
 export { memberService } from './memberService';
 

@@ -94,7 +94,27 @@ export interface FavoriteStock {
   stockType: 'STOCK' | 'ETF';
   currency: string;
   addedAt: string;
+  groupId?: string; // 속한 그룹 ID
   price?: StockPrice;
+}
+
+// 관심종목 그룹 (백엔드 API 응답)
+export interface Watchlist {
+  id: number;
+  memberId?: number; // 로그인 사용자만 있음
+  groupName: string;
+  symbols: string[]; // 종목 심볼 배열
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 관심종목 그룹 (로컬용 - 기존 호환성)
+export interface FavoriteGroup {
+  id: string;
+  name: string;
+  order: number; // 정렬 순서
+  createdAt: string;
 }
 
 // 거래소 상태
