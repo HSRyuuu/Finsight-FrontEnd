@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ScrollView,
-  TextInput,
-  Modal,
   StyleSheet,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -46,12 +44,6 @@ const HomeScreen: React.FC = () => {
 
   // 종목 정보 캐시
   const [stocksInfo, setStocksInfo] = useState<{ [symbol: string]: Stock }>({});
-
-  // 편집 모달 상태
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editMode, setEditMode] = useState<'add' | 'edit' | 'delete'>('add');
-  const [editingWatchlist, setEditingWatchlist] = useState<number | null>(null);
-  const [groupName, setGroupName] = useState('');
 
   const [selectedTab, setSelectedTab] = React.useState<
     'watchlist' | 'tab2' | 'tab3'
@@ -125,54 +117,13 @@ const HomeScreen: React.FC = () => {
     return `$${price.toFixed(2)}`;
   };
 
-  // 그룹 추가 버튼 핸들러
-  const handleAddGroup = () => {
+  // 편집 화면으로 이동
+  const handleEditMode = () => {
     if (!isAuthenticated) {
       toastManager.show('로그인이 필요합니다.', 'error');
       return;
     }
-    setEditMode('add');
-    setGroupName('');
-    setShowEditModal(true);
-  };
-
-  // 그룹 편집 버튼 핸들러
-  const handleEditGroup = (watchlistId: number, currentName: string) => {
-    setEditMode('edit');
-    setEditingWatchlist(watchlistId);
-    setGroupName(currentName);
-    setShowEditModal(true);
-  };
-
-  // 그룹 삭제 버튼 핸들러
-  const handleDeleteGroup = (watchlistId: number) => {
-    setEditMode('delete');
-    setEditingWatchlist(watchlistId);
-    setShowEditModal(true);
-  };
-
-  // 모달 확인 버튼
-  const handleModalConfirm = async () => {
-    try {
-      if (editMode === 'add') {
-        await addWatchlist(groupName);
-        toastManager.show('그룹이 추가되었습니다.', 'success');
-      } else if (editMode === 'edit' && editingWatchlist) {
-        await updateWatchlist(editingWatchlist, { groupName });
-        toastManager.show('그룹 이름이 변경되었습니다.', 'success');
-      } else if (editMode === 'delete' && editingWatchlist) {
-        await deleteWatchlist(editingWatchlist);
-        toastManager.show('그룹이 삭제되었습니다.', 'success');
-        if (selectedWatchlistId === editingWatchlist) {
-          setSelectedWatchlistId(watchlists[0]?.id || null);
-        }
-      }
-      setShowEditModal(false);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : '작업에 실패했습니다.';
-      toastManager.show(message, 'error');
-    }
+    navigation.navigate('EditWatchlist');
   };
 
   // 종목 아이템 렌더링
@@ -238,11 +189,6 @@ const HomeScreen: React.FC = () => {
         <TouchableOpacity
           key={watchlist.id}
           onPress={() => setSelectedWatchlistId(watchlist.id)}
-          onLongPress={() => {
-            if (isAuthenticated) {
-              handleEditGroup(watchlist.id, watchlist.groupName);
-            }
-          }}
           style={[
             styles.chip,
             selectedWatchlistId === watchlist.id && styles.chipSelected,
@@ -262,7 +208,7 @@ const HomeScreen: React.FC = () => {
       {/* 편집 버튼 (로그인 시에만) */}
       {isAuthenticated && (
         <TouchableOpacity
-          onPress={handleAddGroup}
+          onPress={handleEditMode}
           style={[styles.chip, styles.chipEdit]}
         >
           <Text style={styles.chipEditText}>+ 편집</Text>
@@ -448,72 +394,6 @@ const HomeScreen: React.FC = () => {
           )}
         </View>
       </ScrollView>
-
-      {/* 편집 모달 */}
-      <Modal
-        visible={showEditModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowEditModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editMode === 'add'
-                ? '그룹 추가'
-                : editMode === 'edit'
-                  ? '그룹 이름 변경'
-                  : '그룹 삭제'}
-            </Text>
-
-            {editMode !== 'delete' ? (
-              <>
-                <TextInput
-                  style={styles.modalInput}
-                  value={groupName}
-                  onChangeText={setGroupName}
-                  placeholder="그룹 이름을 입력하세요"
-                  autoFocus
-                />
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.modalButtonCancel]}
-                    onPress={() => setShowEditModal(false)}
-                  >
-                    <Text style={styles.modalButtonTextCancel}>취소</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.modalButtonConfirm]}
-                    onPress={handleModalConfirm}
-                  >
-                    <Text style={styles.modalButtonTextConfirm}>확인</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.modalMessage}>
-                  이 그룹을 삭제하시겠습니까?
-                </Text>
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.modalButtonCancel]}
-                    onPress={() => setShowEditModal(false)}
-                  >
-                    <Text style={styles.modalButtonTextCancel}>취소</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.modalButtonConfirm]}
-                    onPress={handleModalConfirm}
-                  >
-                    <Text style={styles.modalButtonTextConfirm}>삭제</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -556,64 +436,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#1B3A57',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalMessage: {
-    fontSize: 16,
-    color: '#3C3C43',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#C7C7CC',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonCancel: {
-    backgroundColor: '#F2F2F7',
-  },
-  modalButtonConfirm: {
-    backgroundColor: '#1B3A57',
-  },
-  modalButtonTextCancel: {
-    color: '#3C3C43',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalButtonTextConfirm: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

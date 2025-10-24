@@ -19,6 +19,7 @@ import StockDetailScreen from '../screens/StockDetailScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import EditWatchlistScreen from '../screens/EditWatchlistScreen';
 
 // 각 탭별 스택 네비게이터 생성
 const HomeStack = createStackNavigator();
@@ -106,6 +107,13 @@ const HomeStackNavigator = () => {
             />
           ),
         })}
+      />
+      <HomeStack.Screen
+        name="EditWatchlist"
+        component={EditWatchlistScreen}
+        options={{
+          headerShown: false,
+        }}
       />
     </HomeStack.Navigator>
   );

@@ -59,7 +59,7 @@ export const useWatchlist = () => {
 
   const updateWatchlist = async (
     id: number,
-    data: { groupName?: string; symbols?: string[] }
+    data: { groupName?: string; symbols?: string[]; sortOrder?: number }
   ) => {
     try {
       if (!isAuthenticated) {
@@ -70,6 +70,45 @@ export const useWatchlist = () => {
     } catch (err) {
       setError(
         err instanceof Error ? err.message : '그룹 수정에 실패했습니다.'
+      );
+      throw err;
+    }
+  };
+
+  const updateWatchlistsOrder = async (
+    updates: Array<{ id: number; sortOrder: number }>
+  ) => {
+    try {
+      if (!isAuthenticated) {
+        throw new Error('로그인이 필요합니다.');
+      }
+      await watchlistService.updateWatchlistsOrder(updates);
+      await fetchWatchlists();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '순서 저장에 실패했습니다.'
+      );
+      throw err;
+    }
+  };
+
+  const updateAllWatchlistGroups = async (
+    groups: Array<{
+      id?: number;
+      groupName: string;
+      symbols: string[];
+      sortOrder: number;
+    }>
+  ) => {
+    try {
+      if (!isAuthenticated) {
+        throw new Error('로그인이 필요합니다.');
+      }
+      await watchlistService.updateAllWatchlistGroups(groups);
+      await fetchWatchlists();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '그룹 저장에 실패했습니다.'
       );
       throw err;
     }
@@ -127,6 +166,8 @@ export const useWatchlist = () => {
     isAuthenticated,
     addWatchlist,
     updateWatchlist,
+    updateWatchlistsOrder,
+    updateAllWatchlistGroups,
     deleteWatchlist,
     addSymbol,
     removeSymbol,

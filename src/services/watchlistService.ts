@@ -38,12 +38,41 @@ class WatchlistService {
   // 관심종목 그룹 수정
   async updateWatchlist(
     id: number,
-    data: { groupName?: string; symbols?: string[] }
+    data: { groupName?: string; symbols?: string[]; sortOrder?: number }
   ): Promise<Watchlist> {
     try {
       return await apiService.put<Watchlist>(`/api/watchlist/${id}`, data);
     } catch (error) {
       console.error('관심종목 그룹 수정 실패:', error);
+      throw error;
+    }
+  }
+
+  // 여러 관심종목 그룹 순서 일괄 업데이트
+  async updateWatchlistsOrder(
+    updates: Array<{ id: number; sortOrder: number }>
+  ): Promise<void> {
+    try {
+      // 각 그룹의 sortOrder를 개별적으로 업데이트
+      await Promise.all(
+        updates.map(update =>
+          this.updateWatchlist(update.id, { sortOrder: update.sortOrder })
+        )
+      );
+    } catch (error) {
+      console.error('관심종목 순서 업데이트 실패:', error);
+      throw error;
+    }
+  }
+
+  // 전체 관심종목 그룹 목록 일괄 업데이트
+  async updateAllWatchlistGroups(
+    groups: Array<{ id?: number; groupName: string; symbols: string[]; sortOrder: number }>
+  ): Promise<Watchlist[]> {
+    try {
+      return await apiService.put<Watchlist[]>('/api/watchlist/groups', groups);
+    } catch (error) {
+      console.error('관심종목 그룹 일괄 업데이트 실패:', error);
       throw error;
     }
   }

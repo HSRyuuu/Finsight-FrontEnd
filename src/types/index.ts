@@ -200,6 +200,7 @@ export type TabParamList = {
 export type HomeStackParamList = {
   HomeMain: undefined;
   StockDetail: { symbol: string; name: string };
+  EditWatchlist: undefined;
 };
 
 export type SearchStackParamList = {
