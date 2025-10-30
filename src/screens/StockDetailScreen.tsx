@@ -44,10 +44,10 @@ const StockDetailScreen: React.FC = () => {
   const [indicatorModalVisible, setIndicatorModalVisible] = useState(false);
   const [selectedIndicator, setSelectedIndicator] = useState<{
     name: string;
-    description: string;
+    description: React.ReactNode;
   } | null>(null);
   const [showBollingerBands, setShowBollingerBands] = useState(true);
-  const [showRSI, setShowRSI] = useState(false);
+  const [showRSI, setShowRSI] = useState(true);
 
   // 1단계: 캔들 상태 확인
   const {
@@ -511,7 +511,7 @@ const StockDetailScreen: React.FC = () => {
                 color: showBollingerBands ? '#FF9500' : '#8E8E93',
               }}
             >
-              볼린저 밴드
+              BB
             </Text>
           </TouchableOpacity>
 
@@ -568,7 +568,7 @@ const StockDetailScreen: React.FC = () => {
   };
 
   // 기술적 지표 설명 모달 열기
-  const openIndicatorModal = (name: string, description: string) => {
+  const openIndicatorModal = (name: string, description: React.ReactNode) => {
     setSelectedIndicator({ name, description });
     setIndicatorModalVisible(true);
   };
@@ -577,34 +577,56 @@ const StockDetailScreen: React.FC = () => {
   const renderTechnicalIndicators = () => {
     // 신호 타입 매핑
     type SignalCategory =
-      | 'strong_buy'
-      | 'buy'
       | 'bullish'
-      | 'neutral'
       | 'bearish'
-      | 'sell'
-      | 'strong_sell';
+      | 'neutral'
+      | 'buy_signal'
+      | 'sell_signal';
 
     const signalMap: Record<string, { signal: SignalCategory; text: string }> =
       {
-        STRONG_BUY: { signal: 'strong_buy', text: '강한 매수' },
-        BUY: { signal: 'buy', text: '매수' },
-        BULLISH: { signal: 'neutral', text: '중립(강세)' },
+        BULLISH: { signal: 'bullish', text: '강세 유지' },
+        BEARISH: { signal: 'bearish', text: '약세 전환' },
         NEUTRAL: { signal: 'neutral', text: '중립' },
-        BEARISH: { signal: 'neutral', text: '중립(약세)' },
-        SELL: { signal: 'sell', text: '매도' },
-        STRONG_SELL: { signal: 'strong_sell', text: '강한 매도' },
+        BUY_SIGNAL: { signal: 'buy_signal', text: '과매도 구간' },
+        SELL_SIGNAL: { signal: 'sell_signal', text: '과매수 구간' },
       };
 
     // RSI 지표 생성
     const getRsiIndicator = () => {
-      const baseDescription = `RSI(Relative Strength Index)는 주가의 상승 압력과 하락 압력 간의 상대적인 강도를 나타내는 지표입니다.
-
-📊 RSI 구간별 의미:
-• 0~30 (과매도): 매수 신호 - 너무 많이 떨어져 반등 가능성 높음
-• 30~50 (약세): 하락 추세 유지 - 관망 또는 약한 매도 고려
-• 50~70 (강세): 상승 추세 유지 - 관망 또는 약한 매수 고려
-• 70~100 (과매수): 매도 신호 - 너무 급등하여 조정 가능성 높음`;
+      const baseDescription = (
+        <View>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            RSI(Relative Strength Index)는 주가의 상승 압력과 하락 압력 간의
+            상대적인 강도를 나타내는 지표입니다.
+          </Text>
+          <Text
+            style={{
+              fontSize: 15,
+              color: '#3C3C43',
+              lineHeight: 22,
+              marginTop: 12,
+            }}
+          >
+            📊 RSI 구간별 의미:
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 0~30: 과매도 구간 - 반등 관찰 시점
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 30~45: 약세 전환 - 하락 모멘텀 확인 필요
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 45~55: 중립 - 방향성 관찰 구간
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 55~70: 강세 유지 - 상승 추세 지속 중
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 70~100: 과매수 구간 - 조정 가능성 관찰
+          </Text>
+        </View>
+      );
 
       if (rsiLoading || !rsiData?.ready) {
         return {
@@ -642,28 +664,172 @@ const StockDetailScreen: React.FC = () => {
         const rsi = rsiData.rsi;
         const type = rsiData.signalType;
 
-        if (type === 'BUY' || rsi < 30) {
-          return `RSI ${rsi.toFixed(2)} - 과매도 구간입니다. 너무 많이 하락하여 반등 가능성이 높습니다.`;
-        } else if (type === 'BEARISH' || (rsi >= 30 && rsi < 50)) {
-          return `RSI ${rsi.toFixed(2)} - 약세 구간입니다. 하락 추세가 유지되고 있어 관망이 필요합니다.`;
-        } else if (type === 'BULLISH' || (rsi >= 50 && rsi < 70)) {
-          return `RSI ${rsi.toFixed(2)} - 강세 구간입니다. 상승 추세가 유지되고 있습니다.`;
-        } else if (type === 'SELL' || rsi >= 70) {
-          return `RSI ${rsi.toFixed(2)} - 과매수 구간입니다. 너무 급등하여 단기 조정 가능성이 있습니다.`;
+        if (type === 'BUY_SIGNAL' || rsi < 30) {
+          return `RSI ${rsi.toFixed(2)} - 과매도 구간입니다. 반등 가능성을 관찰하되, 하락 추세 지속 여부도 함께 확인하세요.`;
+        } else if (type === 'BEARISH' || (rsi >= 30 && rsi < 45)) {
+          return `RSI ${rsi.toFixed(2)} - 약세 구간입니다. 하락 모멘텀이 지속되고 있으나, 반전 신호도 함께 확인하세요.`;
+        } else if (type === 'NEUTRAL' || (rsi >= 45 && rsi < 55)) {
+          return `RSI ${rsi.toFixed(2)} - 중립 구간입니다. 매수세와 매도세가 균형을 이루고 있으며, 방향성 확인이 필요합니다.`;
+        } else if (type === 'BULLISH' || (rsi >= 55 && rsi < 70)) {
+          return `RSI ${rsi.toFixed(2)} - 강세 구간입니다. 상승 추세가 유지되고 있으며, 매수세가 우세한 상태입니다.`;
+        } else if (type === 'SELL_SIGNAL' || rsi >= 70) {
+          return `RSI ${rsi.toFixed(2)} - 과매수 구간입니다. 단기 조정 가능성이 있으나, 강한 상승 추세 중일 수도 있으니 추세 지속성을 확인하세요.`;
         }
         return `RSI ${rsi.toFixed(2)} - 중립 구간입니다.`;
       };
 
       const getDescription = () => {
-        return `RSI(Relative Strength Index)는 주가의 상승 압력과 하락 압력 간의 상대적인 강도를 나타내는 지표입니다.
+        const rsi = rsiData.rsi;
+        const type = rsiData.signalType;
 
-📊 RSI 구간별 의미:
-• 0~30 (과매도): 매수 신호 - 너무 많이 떨어져 반등 가능성 높음
-• 30~50 (약세): 하락 추세 유지 - 관망 또는 약한 매도 고려
-• 50~70 (강세): 상승 추세 유지 - 관망 또는 약한 매수 고려
-• 70~100 (과매수): 매도 신호 - 너무 급등하여 조정 가능성 높음
+        // 현재 구간 판단
+        let currentRange = '';
+        let signalText = '';
+        let signalColor = '#8E8E93';
 
-현재 RSI는 ${rsiData.rsi.toFixed(2)}입니다.`;
+        if (rsi < 30) {
+          currentRange = '0~30';
+          signalText = '과매도 구간';
+          signalColor = '#FF3B30';
+        } else if (rsi >= 30 && rsi < 45) {
+          currentRange = '30~45';
+          signalText = '약세 전환';
+          signalColor = '#007AFF';
+        } else if (rsi >= 45 && rsi < 55) {
+          currentRange = '45~55';
+          signalText = '중립';
+          signalColor = '#8E8E93';
+        } else if (rsi >= 55 && rsi < 70) {
+          currentRange = '55~70';
+          signalText = '강세 유지';
+          signalColor = '#FF3B30';
+        } else if (rsi >= 70) {
+          currentRange = '70~100';
+          signalText = '과매수 구간';
+          signalColor = '#007AFF';
+        }
+
+        return (
+          <View>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              RSI(Relative Strength Index)는 주가의 상승 압력과 하락 압력 간의
+              상대적인 강도를 나타내는 지표입니다.
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                color: '#3C3C43',
+                lineHeight: 22,
+                marginTop: 12,
+              }}
+            >
+              📊 RSI 구간별 의미:
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              •{' '}
+              <Text
+                style={{ fontWeight: currentRange === '0~30' ? '700' : '400' }}
+              >
+                0~30
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '0~30' ? '700' : '400',
+                  color: currentRange === '0~30' ? '#FF3B30' : '#3C3C43',
+                }}
+              >
+                과매도 구간
+              </Text>{' '}
+              - 반등 관찰 시점
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              •{' '}
+              <Text
+                style={{ fontWeight: currentRange === '30~45' ? '700' : '400' }}
+              >
+                30~45
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '30~45' ? '700' : '400',
+                  color: currentRange === '30~45' ? '#007AFF' : '#3C3C43',
+                }}
+              >
+                약세 전환
+              </Text>{' '}
+              - 하락 모멘텀 확인 필요
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              •{' '}
+              <Text
+                style={{ fontWeight: currentRange === '45~55' ? '700' : '400' }}
+              >
+                45~55
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '45~55' ? '700' : '400',
+                  color: currentRange === '45~55' ? '#8E8E93' : '#3C3C43',
+                }}
+              >
+                중립
+              </Text>{' '}
+              - 방향성 관찰 구간
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              •{' '}
+              <Text
+                style={{ fontWeight: currentRange === '55~70' ? '700' : '400' }}
+              >
+                55~70
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '55~70' ? '700' : '400',
+                  color: currentRange === '55~70' ? '#FF3B30' : '#3C3C43',
+                }}
+              >
+                강세 유지
+              </Text>{' '}
+              - 상승 추세 지속 중
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              •{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '70~100' ? '700' : '400',
+                }}
+              >
+                70~100
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '70~100' ? '700' : '400',
+                  color: currentRange === '70~100' ? '#007AFF' : '#3C3C43',
+                }}
+              >
+                과매수 구간
+              </Text>{' '}
+              - 조정 가능성 관찰
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                color: '#3C3C43',
+                lineHeight: 22,
+                marginTop: 12,
+              }}
+            >
+              현재 RSI는{' '}
+              <Text style={{ fontWeight: '700' }}>{rsi.toFixed(2)}</Text>입니다.
+            </Text>
+          </View>
+        );
       };
 
       return {
@@ -681,12 +847,33 @@ const StockDetailScreen: React.FC = () => {
 
     // 볼린저 밴드 지표 생성
     const getBollingerIndicator = () => {
-      const baseDescription = `볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 이동평균선을 중심으로 상단과 하단 밴드를 그려 가격의 위치를 파악합니다.
-
-📊 위치별 신호:
-• 하단 밴드 근처 (0~30%): 매수 신호 - 과매도 구간, 반등 가능성
-• 중심 영역 (30~70%): 중립 - 안정적인 흐름, 추세 관찰
-• 상단 밴드 근처 (70~100%): 매도 신호 - 과매수 구간, 조정 가능성`;
+      const baseDescription = (
+        <View>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 이동평균선을
+            중심으로 상단과 하단 밴드를 그려 가격의 위치를 파악합니다.
+          </Text>
+          <Text
+            style={{
+              fontSize: 15,
+              color: '#3C3C43',
+              lineHeight: 22,
+              marginTop: 12,
+            }}
+          >
+            📊 위치별 의미:
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 하단 밴드 근처 (0~30%): 단기 과매도 - 반등 관찰 구간
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 중심 영역 (30~70%): 중립 - 안정적인 흐름, 추세 관찰
+          </Text>
+          <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+            • 상단 밴드 근처 (70~100%): 단기 과매수 - 조정 가능성 관찰
+          </Text>
+        </View>
+      );
 
       if (bollingerLoading || !bollingerData?.ready) {
         return {
@@ -729,12 +916,12 @@ const StockDetailScreen: React.FC = () => {
         // 볼린저 밴드 내 위치 계산 (0~100%)
         const position = ((current - lower) / (upper - lower)) * 100;
 
-        if (type === 'BUY') {
-          return `가격이 하단 밴드 근처(${position.toFixed(0)}%)에 위치합니다. 과매도 구간으로 반등 가능성이 높습니다.`;
-        } else if (type === 'SELL') {
-          return `가격이 상단 밴드 근처(${position.toFixed(0)}%)에 위치합니다. 과매수 구간으로 조정 가능성이 있습니다.`;
+        if (type === 'BUY_SIGNAL') {
+          return `가격이 하단 밴드 근처(${position.toFixed(0)}%)에 있습니다. 단기 과매도 신호이나 하락 추세 지속 가능성도 있어 주의가 필요합니다. 반등 모멘텀 확인이 중요합니다.`;
+        } else if (type === 'SELL_SIGNAL') {
+          return `가격이 상단 밴드 근처(${position.toFixed(0)}%)에 있습니다. 강한 상승 추세 중일 가능성과 동시에 단기 과열 신호도 확인됩니다. 추세 지속성과 거래량을 함께 확인하세요.`;
         } else if (type === 'NEUTRAL') {
-          return `가격이 밴드 중심부(${position.toFixed(0)}%)에서 움직입니다. 안정적인 흐름을 유지하고 있습니다.`;
+          return `가격이 밴드 중심부(${position.toFixed(0)}%)에서 움직입니다. 안정적인 흐름을 유지하고 있으며, 방향성 확인이 필요합니다.`;
         }
         return '현재 가격이 볼린저 밴드 내에서 움직이고 있습니다.';
       };
@@ -745,14 +932,113 @@ const StockDetailScreen: React.FC = () => {
         const lower = bollingerData.lower;
         const position = ((current - lower) / (upper - lower)) * 100;
 
-        return `볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 이동평균선을 중심으로 상단과 하단 밴드를 그려 가격의 위치를 파악합니다.
+        // 현재 구간 판단
+        let currentRange = '';
+        let signalText = '';
+        let signalColor = '#8E8E93';
 
-📊 위치별 신호:
-• 하단 밴드 근처 (0~30%): 매수 신호 - 과매도 구간, 반등 가능성
-• 중심 영역 (30~70%): 중립 - 안정적인 흐름, 추세 관찰
-• 상단 밴드 근처 (70~100%): 매도 신호 - 과매수 구간, 조정 가능성
+        if (position <= 30) {
+          currentRange = '0~30%';
+          signalText = '단기 과매도';
+          signalColor = '#FF3B30';
+        } else if (position > 30 && position < 70) {
+          currentRange = '30~70%';
+          signalText = '중립';
+          signalColor = '#8E8E93';
+        } else if (position >= 70) {
+          currentRange = '70~100%';
+          signalText = '단기 과매수';
+          signalColor = '#007AFF';
+        }
 
-현재 가격은 밴드 내 ${position.toFixed(0)}% 위치에 있습니다.`;
+        return (
+          <View>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              볼린저 밴드는 가격의 변동성을 측정하는 지표입니다. 이동평균선을
+              중심으로 상단과 하단 밴드를 그려 가격의 위치를 파악합니다.
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                color: '#3C3C43',
+                lineHeight: 22,
+                marginTop: 12,
+              }}
+            >
+              📊 위치별 의미:
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              • 하단 밴드 근처{' '}
+              <Text
+                style={{ fontWeight: currentRange === '0~30%' ? '700' : '400' }}
+              >
+                (0~30%)
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '0~30%' ? '700' : '400',
+                  color: currentRange === '0~30%' ? '#FF3B30' : '#3C3C43',
+                }}
+              >
+                단기 과매도
+              </Text>{' '}
+              - 반등 관찰 구간
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              • 중심 영역{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '30~70%' ? '700' : '400',
+                }}
+              >
+                (30~70%)
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '30~70%' ? '700' : '400',
+                  color: currentRange === '30~70%' ? '#8E8E93' : '#3C3C43',
+                }}
+              >
+                중립
+              </Text>{' '}
+              - 안정적인 흐름, 추세 관찰
+            </Text>
+            <Text style={{ fontSize: 15, color: '#3C3C43', lineHeight: 22 }}>
+              • 상단 밴드 근처{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '70~100%' ? '700' : '400',
+                }}
+              >
+                (70~100%)
+              </Text>
+              :{' '}
+              <Text
+                style={{
+                  fontWeight: currentRange === '70~100%' ? '700' : '400',
+                  color: currentRange === '70~100%' ? '#007AFF' : '#3C3C43',
+                }}
+              >
+                단기 과매수
+              </Text>{' '}
+              - 조정 가능성 관찰
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                color: '#3C3C43',
+                lineHeight: 22,
+                marginTop: 12,
+              }}
+            >
+              현재 가격은 밴드 내{' '}
+              <Text style={{ fontWeight: '700' }}>{position.toFixed(0)}%</Text>{' '}
+              위치에 있습니다.
+            </Text>
+          </View>
+        );
       };
 
       return {
@@ -778,20 +1064,16 @@ const StockDetailScreen: React.FC = () => {
 
     const getSignalColor = (signal: SignalCategory) => {
       switch (signal) {
-        case 'strong_buy':
-          return '#FF0000'; // 진한 빨간색 (강한 매수)
-        case 'buy':
-          return '#FF3B30'; // 빨간색 (매수)
         case 'bullish':
-          return '#FF6B6B'; // 연한 빨간색 (강세)
+          return '#FF3B30'; // 빨간색 (강세 유지)
+        case 'bearish':
+          return '#007AFF'; // 파란색 (약세 전환)
+        case 'buy_signal':
+          return '#FF3B30'; // 빨간색 (과매도 구간)
+        case 'sell_signal':
+          return '#007AFF'; // 파란색 (과매수 구간)
         case 'neutral':
           return '#8E8E93'; // 회색 (중립)
-        case 'bearish':
-          return '#5A9FD4'; // 연한 파란색 (약세)
-        case 'sell':
-          return '#007AFF'; // 파란색 (매도)
-        case 'strong_sell':
-          return '#0056B3'; // 진한 파란색 (강한 매도)
         default:
           return '#8E8E93'; // 기본 회색
       }
@@ -1372,16 +1654,9 @@ const StockDetailScreen: React.FC = () => {
             >
               {selectedIndicator?.name}
             </Text>
-            <Text
-              style={{
-                fontSize: 15,
-                color: '#3C3C43',
-                lineHeight: 22,
-                marginBottom: 20,
-              }}
-            >
+            <View style={{ marginBottom: 20 }}>
               {selectedIndicator?.description}
-            </Text>
+            </View>
             <TouchableOpacity
               onPress={() => setIndicatorModalVisible(false)}
               style={{
