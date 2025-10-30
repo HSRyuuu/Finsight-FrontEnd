@@ -62,23 +62,18 @@ const SettingsScreen: React.FC = () => {
   };
 
   const handleLogoutClick = () => {
-    console.log('🔵 로그아웃 버튼 클릭됨');
     setShowLogoutModal(true);
   };
 
   const handleLogoutConfirm = async () => {
-    console.log('🔵 로그아웃 확인됨');
     setShowLogoutModal(false);
     setIsLoggingOut(true);
 
     try {
-      console.log('🔵 로그아웃 API 호출 시작');
       // 로그아웃 API 호출 (내부에서 storage 삭제 처리)
       const success = await authService.logoutWithApi();
 
       if (success) {
-        console.log('✅ 로그아웃 완료');
-        toastManager.show('로그아웃되었습니다.', 'success');
         // 사용자 정보 갱신 (로그아웃 상태로 변경)
         await refresh();
         // 인증 체크 플래그 리셋 (다음에 다시 체크하도록)
@@ -92,12 +87,10 @@ const SettingsScreen: React.FC = () => {
       );
     } finally {
       setIsLoggingOut(false);
-      console.log('🔵 로그아웃 프로세스 종료');
     }
   };
 
   const handleLogoutCancel = () => {
-    console.log('🔵 로그아웃 취소됨');
     setShowLogoutModal(false);
   };
 
