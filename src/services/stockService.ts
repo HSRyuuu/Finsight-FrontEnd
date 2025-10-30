@@ -135,16 +135,6 @@ export class StockService {
     }
   }
 
-  // 인기 종목 조회
-  async getPopularStocks(): Promise<Stock[]> {
-    try {
-      return await apiService.get<Stock[]>('/api/public/stock/popular');
-    } catch (error) {
-      console.error('인기 종목 조회 실패:', error);
-      throw error;
-    }
-  }
-
   // 섹터별 종목 조회
   async getStocksBySector(sector: string): Promise<Stock[]> {
     try {

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { HomeStackParamList, Stock } from '../types';
+import { HomeStackParamList, Stock, PopularStockItem } from '../types';
 import { useWatchlist, useStockPrice } from '../hooks';
 import { globalStyles, componentStyles } from '../styles';
 import {
@@ -20,7 +20,7 @@ import {
   Logo,
   toastManager,
 } from '../components';
-import { stockService } from '../services';
+import { stockService, watchlistService } from '../services';
 
 type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList>;
 
@@ -45,41 +45,69 @@ const HomeScreen: React.FC = () => {
   // 종목 정보 캐시
   const [stocksInfo, setStocksInfo] = useState<{ [symbol: string]: Stock }>({});
 
+  // 인기 종목 데이터
+  const [popularItems, setPopularItems] = useState<PopularStockItem[]>([]);
+
   const [selectedTab, setSelectedTab] = React.useState<
     'watchlist' | 'tab2' | 'tab3'
   >('watchlist');
 
-  // 화면 포커스 시 데이터 새로고침
+  // 화면 포커스 시 데이터 새로고침 (최초 1회만)
+  const [hasLoaded, setHasLoaded] = React.useState(false);
   useFocusEffect(
     React.useCallback(() => {
-      refetch();
-    }, [refetch])
+      if (!hasLoaded) {
+        refetch();
+        setHasLoaded(true);
+      }
+    }, [hasLoaded, refetch])
   );
 
   // watchlists가 로드되면 인기 탭이 기본 선택됨 (useState 초기값)
 
   // 선택된 watchlist의 종목 정보 로드
+  const selectedWatchlist = React.useMemo(() => {
+    return watchlists.find(w => w.id === selectedWatchlistId);
+  }, [watchlists, selectedWatchlistId]);
+
+  const selectedSymbols = React.useMemo(() => {
+    return selectedWatchlist?.symbols || [];
+  }, [selectedWatchlist]);
+
+  // symbols를 문자열로 직렬화하여 불필요한 리렌더링 방지
+  const selectedSymbolsKey = React.useMemo(() => {
+    return selectedSymbols.join(',');
+  }, [selectedSymbols]);
+
+  // 인기 종목 조회 (selectedWatchlistId가 'popular'일 때만)
   React.useEffect(() => {
-    // 인기 탭 선택 시 API에서 인기 종목 조회 (향후 구현)
-    if (selectedWatchlistId === 'popular') {
-      // TODO: 인기 종목 API 호출
+    if (selectedWatchlistId !== 'popular') return;
+
+    const fetchPopularItems = async () => {
+      try {
+        const items = await watchlistService.getPopularItems();
+        setPopularItems(items);
+      } catch (err) {
+        console.error('인기 종목 아이템 조회 실패:', err);
+        setPopularItems([]);
+      }
+    };
+
+    fetchPopularItems();
+  }, [selectedWatchlistId]);
+
+  // 관심종목 그룹의 종목 정보 조회 (심볼이 변경될 때만)
+  React.useEffect(() => {
+    if (selectedWatchlistId === 'popular') return;
+    if (selectedSymbols.length === 0) {
       setStocksInfo({});
       return;
     }
 
-    const selectedWatchlist = watchlists.find(
-      w => w.id === selectedWatchlistId
-    );
-    if (!selectedWatchlist || selectedWatchlist.symbols.length === 0) {
-      setStocksInfo({});
-      return;
-    }
-
-    // 종목 정보 조회
     const fetchStocksInfo = async () => {
       const newStocksInfo: { [symbol: string]: Stock } = {};
 
-      for (const symbol of selectedWatchlist.symbols) {
+      for (const symbol of selectedSymbols) {
         try {
           const stock = await stockService.getStock(symbol);
           newStocksInfo[symbol] = stock;
@@ -92,7 +120,25 @@ const HomeScreen: React.FC = () => {
     };
 
     fetchStocksInfo();
-  }, [selectedWatchlistId, watchlists]);
+  }, [selectedWatchlistId, selectedSymbolsKey]);
+
+  // 새로고침 핸들러 (pull-to-refresh)
+  const handleRefresh = async () => {
+    // 그룹 목록 새로고침
+    await refetch();
+
+    // 현재 선택된 탭의 데이터도 새로고침
+    if (selectedWatchlistId === 'popular') {
+      try {
+        const items = await watchlistService.getPopularItems();
+        setPopularItems(items);
+      } catch (err) {
+        console.error('인기 종목 새로고침 실패:', err);
+      }
+    }
+    // 그룹 탭의 경우 symbols는 이미 watchlists에 포함되어 있으므로
+    // refetch()로 업데이트되고, selectedSymbolsKey 변경으로 useEffect 자동 실행됨
+  };
 
   const handleStockPress = (symbol: string) => {
     const stock = stocksInfo[symbol];
@@ -100,6 +146,12 @@ const HomeScreen: React.FC = () => {
       navigation.navigate('StockDetail', {
         symbol: stock.symbol,
         name: stock.name,
+      });
+    } else {
+      // stocksInfo에 없으면 symbol만으로 이동 (인기 종목의 경우)
+      navigation.navigate('StockDetail', {
+        symbol: symbol,
+        name: symbol,
       });
     }
   };
@@ -126,11 +178,49 @@ const HomeScreen: React.FC = () => {
     navigation.navigate('EditWatchlist');
   };
 
+  // 신호 타입에 따른 색상
+  const getSignalColor = (signalType: string) => {
+    switch (signalType) {
+      case 'BULLISH':
+        return '#FF3B30'; // 빨간색 (강세 유지)
+      case 'BEARISH':
+        return '#007AFF'; // 파란색 (약세 전환)
+      case 'BUY_SIGNAL':
+        return '#FF3B30'; // 빨간색 (과매도 구간)
+      case 'SELL_SIGNAL':
+        return '#007AFF'; // 파란색 (과매수 구간)
+      case 'NEUTRAL':
+      default:
+        return '#8E8E93'; // 회색 (중립)
+    }
+  };
+
+  // 신호 텍스트
+  const getSignalText = (signalType: string) => {
+    switch (signalType) {
+      case 'BULLISH':
+        return '강세 유지';
+      case 'BEARISH':
+        return '약세 전환';
+      case 'BUY_SIGNAL':
+        return '과매도';
+      case 'SELL_SIGNAL':
+        return '과매수';
+      case 'NEUTRAL':
+      default:
+        return '중립';
+    }
+  };
+
   // 종목 아이템 렌더링
-  const renderStockItem = ({ item: symbol }: { item: string }) => {
+  const renderStockItem = ({ item }: { item: string | PopularStockItem }) => {
+    // item이 string이면 symbol, PopularStockItem이면 실제 데이터
+    const isPopularItem = typeof item !== 'string';
+    const symbol = isPopularItem ? item.symbol : item;
+    const popularData = isPopularItem ? item : null;
     const stock = stocksInfo[symbol];
 
-    if (!stock) {
+    if (!stock && !popularData) {
       return (
         <Card style={componentStyles.listItem}>
           <Text style={globalStyles.text}>{symbol}</Text>
@@ -143,14 +233,98 @@ const HomeScreen: React.FC = () => {
       <TouchableOpacity onPress={() => handleStockPress(symbol)}>
         <Card style={componentStyles.listItem}>
           <View style={globalStyles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={globalStyles.textLarge}>{stock.name}</Text>
-              <Text style={[globalStyles.textSmall, { color: '#8E8E93' }]}>
-                {stock.symbol} · {stock.exchange}
-              </Text>
+            {/* 왼쪽: 아이콘 */}
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#F2F2F7',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Text style={{ fontSize: 20 }}>📈</Text>
             </View>
+
+            {/* 중앙: 종목 정보 */}
+            <View style={{ flex: 1 }}>
+              {/* 첫 번째 줄: 종목명 */}
+              <Text style={globalStyles.textLarge}>
+                {stock?.name || symbol}(한글수정필요)
+              </Text>
+
+              {/* 두 번째 줄: symbol · exchange */}
+              <Text style={[globalStyles.textSmall, { color: '#8E8E93' }]}>
+                {symbol}
+                {stock?.exchange ? ` · ${stock.exchange}` : ''}
+              </Text>
+
+              {/* 세 번째 줄: 볼린저밴드와 RSI 지표 (인기 종목만) */}
+              {popularData && (
+                <View style={{ flexDirection: 'row', marginTop: 6, gap: 8 }}>
+                  {/* 볼린저 밴드 */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 4,
+                      backgroundColor:
+                        getSignalColor(popularData.bollingerBand.signalType) +
+                        '20',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: '600',
+                        color: getSignalColor(
+                          popularData.bollingerBand.signalType
+                        ),
+                      }}
+                    >
+                      BB: {getSignalText(popularData.bollingerBand.signalType)}
+                    </Text>
+                  </View>
+
+                  {/* RSI */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 4,
+                      backgroundColor:
+                        getSignalColor(popularData.rsi.signalType) + '20',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: '600',
+                        color: getSignalColor(popularData.rsi.signalType),
+                      }}
+                    >
+                      RSI: {getSignalText(popularData.rsi.signalType)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* 오른쪽: 가격 */}
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={globalStyles.textSmall}>로딩 중...</Text>
+              {popularData ? (
+                <Text style={[globalStyles.textLarge, { fontWeight: '600' }]}>
+                  ${popularData.close.toFixed(2)}
+                </Text>
+              ) : (
+                <Text style={globalStyles.textSmall}>로딩 중...</Text>
+              )}
             </View>
           </View>
         </Card>
@@ -168,6 +342,7 @@ const HomeScreen: React.FC = () => {
     >
       {/* 인기 탭 (항상 맨 앞) */}
       <TouchableOpacity
+        key="popular"
         onPress={() => setSelectedWatchlistId('popular')}
         style={[
           styles.chip,
@@ -205,35 +380,28 @@ const HomeScreen: React.FC = () => {
         </TouchableOpacity>
       ))}
 
-      {/* 편집 버튼 (로그인 시에만) */}
-      {isAuthenticated && (
-        <TouchableOpacity
-          onPress={handleEditMode}
-          style={[styles.chip, styles.chipEdit]}
-        >
-          <Text style={styles.chipEditText}>+ 편집</Text>
-        </TouchableOpacity>
-      )}
+      {/* 편집 버튼 (항상 표시, 비로그인 시 클릭하면 토스트) */}
+      <TouchableOpacity
+        key="edit"
+        onPress={handleEditMode}
+        style={[styles.chip, styles.chipEdit]}
+      >
+        <Text style={styles.chipEditText}>+ 편집</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
-  if (loading && watchlists.length === 0) {
+  // 최초 로딩 중일 때만 로딩 스피너 표시 (새로고침 시에는 표시하지 않음)
+  if (!hasLoaded && loading) {
     return <LoadingSpinner message="관심 종목을 불러오는 중..." />;
   }
 
-  if (error && watchlists.length === 0) {
-    return (
-      <View style={globalStyles.centerContent}>
-        <ErrorMessage message={error} onRetry={refetch} />
-      </View>
-    );
-  }
+  // 에러가 발생해도 화면은 보이도록 함 (에러 메시지는 별도로 표시)
 
-  const selectedWatchlist =
-    selectedWatchlistId === 'popular'
-      ? null
-      : watchlists.find(w => w.id === selectedWatchlistId);
-  const symbols = selectedWatchlist?.symbols || [];
+  // 인기 탭이면 popularItems 사용, 아니면 symbols 사용
+  const displayData: (string | PopularStockItem)[] =
+    selectedWatchlistId === 'popular' ? popularItems : selectedSymbols;
+
   const isPopularTab = selectedWatchlistId === 'popular';
 
   return (
@@ -243,6 +411,13 @@ const HomeScreen: React.FC = () => {
         <View style={{ padding: 16, alignItems: 'center' }}>
           <Logo size={100} />
         </View>
+
+        {/* 에러 메시지 */}
+        {error && (
+          <View style={{ padding: 16 }}>
+            <ErrorMessage message={error} onRetry={refetch} />
+          </View>
+        )}
 
         {/* 탭 */}
         <View
@@ -326,7 +501,7 @@ const HomeScreen: React.FC = () => {
 
               {/* 종목 목록 */}
               <View style={{ padding: 16 }}>
-                {symbols.length === 0 ? (
+                {displayData.length === 0 ? (
                   <Card style={globalStyles.centerContent}>
                     <Text style={[globalStyles.text, globalStyles.textCenter]}>
                       {isPopularTab
@@ -347,13 +522,15 @@ const HomeScreen: React.FC = () => {
                   </Card>
                 ) : (
                   <FlatList
-                    data={symbols}
-                    keyExtractor={item => item}
+                    data={displayData}
+                    keyExtractor={item =>
+                      typeof item === 'string' ? item : item.symbol
+                    }
                     renderItem={renderStockItem}
                     refreshControl={
                       <RefreshControl
                         refreshing={loading}
-                        onRefresh={refetch}
+                        onRefresh={handleRefresh}
                       />
                     }
                     scrollEnabled={false}
