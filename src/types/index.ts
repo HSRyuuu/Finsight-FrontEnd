@@ -44,6 +44,19 @@ export interface Stock {
   industry?: string;
 }
 
+// 인기 종목 아이템 (볼린저밴드, RSI 포함)
+export interface PopularStockItem {
+  symbol: string;
+  timeframe: string;
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  bollingerBand: BollingerBandsData;
+  rsi: RsiData;
+}
+
 // 주식 가격 정보
 export interface StockPrice {
   symbol: string;
@@ -162,13 +175,11 @@ export interface ExchangeRate {
 
 // 기술적 지표 신호 타입
 export type IndicatorSignalType =
-  | 'BEARISH'
-  | 'BULLISH'
-  | 'STRONG_BUY'
-  | 'BUY'
-  | 'NEUTRAL'
-  | 'SELL'
-  | 'STRONG_SELL';
+  | 'BEARISH' // 약세 전환 (RSI: 30~45)
+  | 'BULLISH' // 강세 유지 (RSI: 55~70)
+  | 'NEUTRAL' // 중립 (RSI: 45~55)
+  | 'BUY_SIGNAL' // 과매도 구간 (RSI: 0~30, Bollinger: 하단 밴드)
+  | 'SELL_SIGNAL'; // 과매수 구간 (RSI: 70~100, Bollinger: 상단 밴드)
 
 // 볼린저 밴드 정보
 export interface BollingerBandsData {

@@ -69,7 +69,7 @@ export const calculateBollingerBands = (
   return { upper, middle, lower };
 };
 
-// RSI 계산 (EMA 방식)
+// RSI 계산 (Wilder's RSI 방식)
 export const calculateRSI = (
   data: CandleData[],
   period: number = 14
@@ -94,28 +94,40 @@ export const calculateRSI = (
   const gains = changes.map(change => Math.max(change, 0));
   const losses = changes.map(change => Math.max(-change, 0));
 
-  // 초기 평균 계산 (단순 평균)
+  // ✅ 초기 평균 계산 (단순 평균)
   let avgGain = 0;
-  let avgLoss = 0;
   for (let i = 0; i < period; i++) {
     avgGain += gains[i];
-    avgLoss += losses[i];
   }
   avgGain /= period;
+
+  let avgLoss = 0;
+  for (let i = 0; i < period; i++) {
+    avgLoss += losses[i];
+  }
   avgLoss /= period;
 
-  // period번째 이후부터 EMA 방식으로 갱신
+  // ✅ period번째 이후부터 Wilder 방식(EMA 유사) 누적 계산
   for (let i = period; i < closes.length; i++) {
     const gain = gains[i - 1];
     const loss = losses[i - 1];
 
-    // EMA 방식 갱신
+    // Wilder's smoothing
     avgGain = (avgGain * (period - 1) + gain) / period;
     avgLoss = (avgLoss * (period - 1) + loss) / period;
 
-    // RS와 RSI 계산
-    const rs = avgLoss === 0 ? Infinity : avgGain / avgLoss;
-    const rsi = 100 - 100 / (1 + rs);
+    // RS와 RSI 계산 (edge case 처리)
+    let rsi: number;
+    if (avgLoss === 0 && avgGain === 0) {
+      rsi = 50.0;
+    } else if (avgLoss === 0) {
+      rsi = 100.0;
+    } else if (avgGain === 0) {
+      rsi = 0.0;
+    } else {
+      const rs = avgGain / avgLoss;
+      rsi = 100 - 100 / (1 + rs);
+    }
 
     result.push({
       time: Math.floor(sortedData[i].time / 1000), // milliseconds to seconds (정수)
