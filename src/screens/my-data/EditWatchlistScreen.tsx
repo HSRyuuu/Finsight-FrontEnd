@@ -17,7 +17,12 @@ import { useNavigation } from '@react-navigation/native';
 import { Watchlist } from '@/types';
 import { useWatchlist } from '@/hooks';
 import { globalStyles } from '@/styles';
-import { Card, LoadingSpinner, toastManager, ConfirmModal } from '@/components';
+import {
+  Card,
+  LoadingSpinner,
+  toastManager,
+  ConfirmModal,
+} from '@/components';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

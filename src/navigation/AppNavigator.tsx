@@ -10,19 +10,21 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { Logo } from '../components';
+import { Logo } from '@/components';
 
 // 스크린 import
-import HomeScreen from '../screens/HomeScreen';
-import SearchScreen from '../screens/SearchScreen';
-import StockDetailScreen from '../screens/StockDetailScreen';
-import SettingsScreen from '../screens/SettingsScreen';
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
-import EditWatchlistScreen from '../screens/EditWatchlistScreen';
+import HomeScreen from '@/screens/home/HomeScreen';
+import MyDataScreen from '@/screens/my-data/MyDataScreen';
+import EditWatchlistScreen from '@/screens/my-data/EditWatchlistScreen';
+import SearchScreen from '@/screens/search/SearchScreen';
+import StockDetailScreen from '@/screens/search/StockDetailScreen';
+import SettingsScreen from '@/screens/settings/SettingsScreen';
+import LoginScreen from '@/screens/settings/LoginScreen';
+import RegisterScreen from '@/screens/settings/RegisterScreen';
 
 // 각 탭별 스택 네비게이터 생성
 const HomeStack = createStackNavigator();
+const MyDataStack = createStackNavigator();
 const SearchStack = createStackNavigator();
 const SettingsStack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -116,6 +118,41 @@ const HomeStackNavigator = () => {
         }}
       />
     </HomeStack.Navigator>
+  );
+};
+
+// 내 데이터 스택 네비게이터
+const MyDataStackNavigator = () => {
+  return (
+    <MyDataStack.Navigator screenOptions={commonHeaderOptions}>
+      <MyDataStack.Screen
+        name="MyDataMain"
+        component={MyDataScreen}
+        options={{
+          header: () => <CustomHeader title="" />,
+        }}
+      />
+      <MyDataStack.Screen
+        name="StockDetail"
+        component={StockDetailScreen}
+        options={({ navigation }) => ({
+          header: () => (
+            <CustomHeader
+              title="종목 상세"
+              canGoBack={true}
+              onBackPress={() => navigation.goBack()}
+            />
+          ),
+        })}
+      />
+      <MyDataStack.Screen
+        name="EditWatchlist"
+        component={EditWatchlistScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </MyDataStack.Navigator>
   );
 };
 
@@ -216,7 +253,23 @@ const TabNavigator = () => {
           title: '홈',
           tabBarIcon: ({ color }) => (
             <Image
-              source={require('../assets/home.png')}
+              source={require('@/assets/home.png')}
+              style={{ width: 24, height: 24 }}
+              // @ts-ignore - tintColor는 웹에서 지원됨
+              tintColor={color}
+              resizeMode="contain"
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="MyData"
+        component={MyDataStackNavigator}
+        options={{
+          title: '관심',
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={require('@/assets/home.png')}
               style={{ width: 24, height: 24 }}
               // @ts-ignore - tintColor는 웹에서 지원됨
               tintColor={color}
@@ -232,7 +285,7 @@ const TabNavigator = () => {
           title: '검색',
           tabBarIcon: ({ color }) => (
             <Image
-              source={require('../assets/search.png')}
+              source={require('@/assets/search.png')}
               style={{ width: 24, height: 24 }}
               // @ts-ignore - tintColor는 웹에서 지원됨
               tintColor={color}
@@ -248,7 +301,7 @@ const TabNavigator = () => {
           title: '내 정보',
           tabBarIcon: ({ color }) => (
             <Image
-              source={require('../assets/user.png')}
+              source={require('@/assets/user.png')}
               style={{ width: 24, height: 24 }}
               // @ts-ignore - tintColor는 웹에서 지원됨
               tintColor={color}

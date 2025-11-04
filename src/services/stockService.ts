@@ -10,7 +10,7 @@ import {
   ExchangeRate,
   BollingerBandsData,
   RsiData,
-} from '../types';
+} from '@/types';
 
 export class StockService {
   // 종목 검색

@@ -8,7 +8,7 @@ import {
   Modal,
 } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { SearchStackParamList, ChartPeriod, CandleData } from '../types';
+import { SearchStackParamList, ChartPeriod, CandleData } from '@/types';
 import {
   useCandleStatus,
   useStock,
@@ -19,14 +19,14 @@ import {
   useExchangeRate,
   useBollingerBands,
   useRsi,
-} from '../hooks';
-import { globalStyles, componentStyles } from '../styles';
+} from '@/hooks';
+import { globalStyles, componentStyles } from '@/styles';
 import {
   Card,
   LoadingSpinner,
   ErrorMessage,
   CandlestickChart,
-} from '../components';
+} from '@/components';
 
 type StockDetailScreenRouteProp = RouteProp<
   SearchStackParamList,

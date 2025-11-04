@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { API_BASE_URL } from '../utils/constants';
-import { ApiResponse } from '../types';
+import { API_BASE_URL } from '@/utils/constants';
+import { ApiResponse } from '@/types';
 import authService from './authService';
 
 class ApiService {

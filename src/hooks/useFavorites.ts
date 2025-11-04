@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { favoriteService } from '../services';
-import { FavoriteStock, FavoriteGroup } from '../types';
+import { favoriteService } from '@/services';
+import { FavoriteStock, FavoriteGroup } from '@/types';
 
 // 즐겨찾기 목록 훅
 export const useFavorites = () => {

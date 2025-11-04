@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Platform, Text, StyleSheet } from 'react-native';
-import { CandleData } from '../types';
+import { CandleData } from '@/types';
 import {
   calculateMovingAverage,
   calculateBollingerBands,
   calculateRSI,
-} from '../utils/chartIndicators';
+} from '@/utils/chartIndicators';
 import {
   createChart,
   ColorType,

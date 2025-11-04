@@ -7,5 +7,5 @@ export { default as authService } from './authService';
 export { memberService } from './memberService';
 
 // 서비스 타입들
-export type { ApiResponse } from '../types';
+export type { ApiResponse } from '@/types';
 export type { UserInfo } from './authService';

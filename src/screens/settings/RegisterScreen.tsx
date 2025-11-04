@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { globalStyles } from '../styles';
-import { Card } from '../components';
-import { memberService } from '../services';
+import { globalStyles } from '@/styles';
+import { Card } from '@/components';
+import { memberService } from '@/services';
 
 type RegisterScreenNavigationProp = StackNavigationProp<any>;
 

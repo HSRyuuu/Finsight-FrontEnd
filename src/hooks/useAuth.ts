@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import authService from '../services/authService';
-import { UserInfo } from '../types';
+import authService from '@/services/authService';
+import { UserInfo } from '@/types';
 
 /**
  * 인증 관련 커스텀 훅

@@ -10,10 +10,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { globalStyles } from '../styles';
-import { Card, toastManager } from '../components';
-import authService from '../services/authService';
-import { useAuth } from '../hooks';
+import { globalStyles } from '@/styles';
+import { Card, toastManager } from '@/components';
+import authService from '@/services/authService';
+import { useAuth } from '@/hooks';
 
 type LoginScreenNavigationProp = StackNavigationProp<any>;
 
@@ -76,7 +76,7 @@ const LoginScreen: React.FC = () => {
           {/* 로고 */}
           <View style={styles.logoContainer}>
             <Image
-              source={require('../assets/logo.png')}
+              source={require('@/assets/logo.png')}
               style={styles.logo}
               resizeMode="contain"
             />

@@ -10,10 +10,10 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { globalStyles, componentStyles } from '../styles';
-import { Card, toastManager, ConfirmModal } from '../components';
-import { useAuth } from '../hooks';
-import authService from '../services/authService';
+import { globalStyles, componentStyles } from '@/styles';
+import { Card, toastManager, ConfirmModal } from '@/components';
+import { useAuth } from '@/hooks';
+import authService from '@/services/authService';
 
 type SettingsScreenNavigationProp = StackNavigationProp<any>;
 
@@ -116,7 +116,7 @@ const SettingsScreen: React.FC = () => {
                   />
                 ) : (
                   <Image
-                    source={require('../assets/logo.png')}
+                    source={require('@/assets/logo.png')}
                     style={styles.profileImage}
                     resizeMode="contain"
                   />

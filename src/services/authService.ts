@@ -6,8 +6,8 @@ import {
   LogoutResponse,
   ApiResponse,
   UserInfo,
-} from '../types';
-import { API_BASE_URL } from '../utils/constants';
+} from '@/types';
+import { API_BASE_URL } from '@/utils/constants';
 import { apiService } from './api';
 
 // 저장소 키

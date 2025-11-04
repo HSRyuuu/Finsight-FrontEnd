@@ -13,7 +13,7 @@ export const Logo: React.FC<LogoProps> = ({ size = 40, showText = false }) => {
     <View style={[styles.container, showText && styles.containerWithText]}>
       {/* PNG 로고 이미지 */}
       <Image
-        source={require('../assets/logo.png')}
+        source={require('@/assets/logo.png')}
         style={{ width: size, height: size }}
         resizeMode="contain"
       />

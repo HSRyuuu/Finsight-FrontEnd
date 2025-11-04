@@ -1,13 +1,15 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
 // 웹 지원을 위한 설정
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
-// 웹에서 사용할 수 없는 모듈들에 대한 폴리필
+// 웹에서 사용할 수 없는 모듈들에 대한 폴리필 + alias 설정
 config.resolver.alias = {
   'react-native-vector-icons': 'react-native-vector-icons/dist',
+  '@': path.resolve(__dirname, 'src'),
 };
 
 // 웹 빌드를 위한 최적화

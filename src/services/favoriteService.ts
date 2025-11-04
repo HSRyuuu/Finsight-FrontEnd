@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FavoriteStock, FavoriteGroup } from '../types';
+import { FavoriteStock, FavoriteGroup } from '@/types';
 
 const FAVORITES_KEY = 'favorite_stocks';
 const GROUPS_KEY = 'favorite_groups';
@@ -96,7 +96,7 @@ export class FavoriteService {
     try {
       const groupsJson = await AsyncStorage.getItem(GROUPS_KEY);
       const groups = groupsJson ? JSON.parse(groupsJson) : [];
-      
+
       // 기본 그룹이 없으면 생성
       if (groups.length === 0) {
         const defaultGroups: FavoriteGroup[] = [
@@ -116,7 +116,7 @@ export class FavoriteService {
         await AsyncStorage.setItem(GROUPS_KEY, JSON.stringify(defaultGroups));
         return defaultGroups;
       }
-      
+
       return groups.sort((a, b) => a.order - b.order);
     } catch (error) {
       console.error('그룹 조회 실패:', error);
@@ -128,15 +128,16 @@ export class FavoriteService {
   async addGroup(name: string): Promise<FavoriteGroup> {
     try {
       const groups = await this.getGroups();
-      const maxOrder = groups.length > 0 ? Math.max(...groups.map(g => g.order)) : -1;
-      
+      const maxOrder =
+        groups.length > 0 ? Math.max(...groups.map(g => g.order)) : -1;
+
       const newGroup: FavoriteGroup = {
         id: `group_${Date.now()}`,
         name,
         order: maxOrder + 1,
         createdAt: new Date().toISOString(),
       };
-      
+
       groups.push(newGroup);
       await AsyncStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
       return newGroup;
@@ -177,7 +178,10 @@ export class FavoriteService {
       const updatedFavorites = favorites.map(fav =>
         fav.groupId === groupId ? { ...fav, groupId: undefined } : fav
       );
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
+      await AsyncStorage.setItem(
+        FAVORITES_KEY,
+        JSON.stringify(updatedFavorites)
+      );
     } catch (error) {
       console.error('그룹 삭제 실패:', error);
       throw error;
@@ -234,7 +238,10 @@ export class FavoriteService {
       const updatedFavorites = favorites.map(fav =>
         fav.symbol === symbol ? { ...fav, groupId } : fav
       );
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
+      await AsyncStorage.setItem(
+        FAVORITES_KEY,
+        JSON.stringify(updatedFavorites)
+      );
     } catch (error) {
       console.error('종목 그룹 변경 실패:', error);
       throw error;

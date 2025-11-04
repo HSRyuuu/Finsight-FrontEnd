@@ -1,18 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import { watchlistService } from '../services';
-import { Watchlist } from '../types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { watchlistService } from '@/services';
+import { Watchlist } from '@/types';
 import { useAuth } from './useAuth';
 
 /**
- * 관심종목 조회 훅 (로그인 상태에 따라 다른 API 호출)
+ * 관심종목 조회 훅 (읽기 전용 - 그룹 조회, popular 조회만 가능)
  */
 export const useWatchlist = () => {
   const { isAuthenticated } = useAuth();
   const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevAuthRef = useRef<boolean | null>(null);
 
   const fetchWatchlists = useCallback(async () => {
+    // 이전 인증 상태와 같으면 중복 호출 방지
+    if (prevAuthRef.current === isAuthenticated && watchlists.length > 0) {
+      return;
+    }
+    prevAuthRef.current = isAuthenticated;
+
     try {
       setLoading(true);
       setError(null);
@@ -22,74 +29,44 @@ export const useWatchlist = () => {
         const data = await watchlistService.getWatchlists();
         setWatchlists(data);
       } else {
-        // 비로그인 상태: 기본 관심종목(인기) 조회
-        const defaultWatchlist = await watchlistService.getDefaultWatchlist();
-        setWatchlists([defaultWatchlist]);
+        // 비로그인 상태: 인기 종목 조회
+        const popularStocks = await watchlistService.getPopularStocks();
+        setWatchlists(popularStocks);
       }
     } catch (err) {
+      console.error('관심종목 조회 실패:', err);
       setError(
         err instanceof Error
           ? err.message
           : '관심종목을 불러오는데 실패했습니다.'
       );
+      // 에러가 발생해도 빈 배열로 설정하여 화면이 보이도록 함
       setWatchlists([]);
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, watchlists.length]);
 
   useEffect(() => {
     fetchWatchlists();
   }, [fetchWatchlists]);
 
+  // 읽기 전용이므로 편집 관련 메서드들은 에러를 던지도록 함
   const addWatchlist = async (groupName: string) => {
-    try {
-      if (!isAuthenticated) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      await watchlistService.addWatchlist(groupName);
-      await fetchWatchlists();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '그룹 추가에 실패했습니다.'
-      );
-      throw err;
-    }
+    throw new Error('관심종목 편집 기능은 현재 사용할 수 없습니다.');
   };
 
   const updateWatchlist = async (
     id: number,
     data: { groupName?: string; symbols?: string[]; sortOrder?: number }
   ) => {
-    try {
-      if (!isAuthenticated) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      await watchlistService.updateWatchlist(id, data);
-      await fetchWatchlists();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '그룹 수정에 실패했습니다.'
-      );
-      throw err;
-    }
+    throw new Error('관심종목 편집 기능은 현재 사용할 수 없습니다.');
   };
 
   const updateWatchlistsOrder = async (
     updates: Array<{ id: number; sortOrder: number }>
   ) => {
-    try {
-      if (!isAuthenticated) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      await watchlistService.updateWatchlistsOrder(updates);
-      await fetchWatchlists();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '순서 저장에 실패했습니다.'
-      );
-      throw err;
-    }
+    throw new Error('관심종목 편집 기능은 현재 사용할 수 없습니다.');
   };
 
   const updateAllWatchlistGroups = async (
@@ -100,63 +77,19 @@ export const useWatchlist = () => {
       sortOrder: number;
     }>
   ) => {
-    try {
-      if (!isAuthenticated) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      await watchlistService.updateAllWatchlistGroups(groups);
-      await fetchWatchlists();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '그룹 저장에 실패했습니다.'
-      );
-      throw err;
-    }
+    throw new Error('관심종목 편집 기능은 현재 사용할 수 없습니다.');
   };
 
   const deleteWatchlist = async (id: number) => {
-    try {
-      if (!isAuthenticated) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      await watchlistService.deleteWatchlist(id);
-      await fetchWatchlists();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '그룹 삭제에 실패했습니다.'
-      );
-      throw err;
-    }
+    throw new Error('관심종목 편집 기능은 현재 사용할 수 없습니다.');
   };
 
   const addSymbol = async (watchlistId: number, symbol: string) => {
-    try {
-      if (!isAuthenticated) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      await watchlistService.addSymbolToWatchlist(watchlistId, symbol);
-      await fetchWatchlists();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '종목 추가에 실패했습니다.'
-      );
-      throw err;
-    }
+    throw new Error('관심종목 편집 기능은 현재 사용할 수 없습니다.');
   };
 
   const removeSymbol = async (watchlistId: number, symbol: string) => {
-    try {
-      if (!isAuthenticated) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      await watchlistService.removeSymbolFromWatchlist(watchlistId, symbol);
-      await fetchWatchlists();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '종목 제거에 실패했습니다.'
-      );
-      throw err;
-    }
+    throw new Error('관심종목 편집 기능은 현재 사용할 수 없습니다.');
   };
 
   return {

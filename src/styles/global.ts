@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { COLORS, FONT_SIZES, SPACING } from '../utils/constants';
+import { COLORS, FONT_SIZES, SPACING } from '@/utils/constants';
 
 // 전역 스타일 정의
 export const globalStyles = StyleSheet.create({

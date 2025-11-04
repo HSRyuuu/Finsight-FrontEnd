@@ -1,4 +1,4 @@
-import { CandleData } from '../types';
+import { CandleData } from '@/types';
 
 // 이동평균선 계산
 export const calculateMovingAverage = (

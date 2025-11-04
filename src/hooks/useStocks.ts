@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { stockService } from '../services';
+import { stockService } from '@/services';
 import {
   Stock,
   SearchResult,
@@ -10,7 +10,7 @@ import {
   ExchangeRate,
   BollingerBandsData,
   RsiData,
-} from '../types';
+} from '@/types';
 
 // 종목 검색 훅
 export const useStockSearch = (query: string) => {
